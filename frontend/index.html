@@ -1,0 +1,4099 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Report Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg-window: #16191d;
+      --bg-sidebar: #192024;
+      --bg-sidebar-hover: rgba(255, 255, 255, 0.05);
+      --bg-main: #fbf9f5;
+      --grid-line: #e7e4dc;
+      --card-bg: #ffffff;
+      --action-card-bg: #f4efe6;
+      --action-card-hover: #ece6dc;
+      --text-sidebar: #8e98a4;
+      --text-sidebar-active: #ffffff;
+      --text-primary: #1a2228;
+      --text-secondary: #57606a;
+      --gold-accent: #a68a56;
+      --sidebar-width: 250px;
+      --titlebar-height: 40px;
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --radius-sm: 10px;
+    }
+
+    /* Dark Mode Theme Variables */
+    body.dark-theme {
+      --bg-main: #121619;
+      --grid-line: #1e262c;
+      --card-bg: #182025;
+      --action-card-bg: #222c33;
+      --action-card-hover: #29353e;
+      --text-primary: #f0f4f8;
+      --text-secondary: #94a3b8;
+      --gold-accent: #c4a76c;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #0f1215;
+      color: var(--text-primary);
+      overflow: hidden;
+      overflow-x: clip;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Main Application Layout */
+    .app-window {
+      display: flex;
+      flex-direction: row;
+      width: 100%;
+      max-width: 100vw;
+      height: 100dvh;
+      background: var(--bg-window);
+      overflow: hidden;
+      overflow-x: clip;
+    }
+
+    .window-body {
+      display: flex;
+      flex: 1;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    /* Views Panels */
+    .view-panel {
+      width: 100%;
+      max-width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: auto 0;
+      padding-bottom: 40px;
+      box-sizing: border-box;
+      animation: fadeIn 0.22s ease-out;
+    }
+
+    .view-panel:not(.active) {
+      display: none !important;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      width: var(--sidebar-width);
+      background-color: var(--bg-sidebar);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 14px 20px 14px;
+      flex-shrink: 0;
+      border-right: 1px solid rgba(255, 255, 255, 0.03);
+      overscroll-behavior: contain;
+      user-select: none;
+    }
+
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 10px 30px 10px;
+      color: #ffffff;
+    }
+
+    .brand-icon {
+      width: 26px;
+      height: 26px;
+      color: #d1d5db;
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #f1f5f9;
+      white-space: nowrap;
+    }
+
+    /* Navigation Menu */
+    .nav-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      list-style: none;
+    }
+
+    .nav-item {
+      position: relative;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 11px 14px;
+      border-radius: var(--radius-sm);
+      color: var(--text-sidebar);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .nav-link:hover:not(.active) {
+      color: #cbd5e1;
+      background-color: var(--bg-sidebar-hover);
+    }
+
+    .nav-link svg {
+      width: 20px;
+      height: 20px;
+      stroke-width: 1.8;
+      flex-shrink: 0;
+      transition: transform 0.2s ease;
+    }
+
+    .nav-link:hover svg {
+      transform: scale(1.05);
+    }
+
+    /* Active Glowing State for Selected Item */
+    .nav-link.active {
+      color: var(--text-sidebar-active);
+      background-color: rgba(30, 38, 44, 0.85);
+      border-color: rgba(255, 255, 255, 0.22);
+      box-shadow: 
+        0 0 16px -2px rgba(56, 189, 248, 0.45),
+        0 0 10px 1px rgba(249, 115, 22, 0.35),
+        inset 0 0 12px rgba(255, 255, 255, 0.06);
+    }
+
+    /* Content Canvas Area */
+    .main-canvas {
+      flex: 1 1 0%;
+      min-width: 0;
+      width: 100%;
+      max-width: 100%;
+      background-color: var(--bg-main);
+      background-image: 
+        linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+      background-size: 140px 140px;
+      background-position: center center;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 36px 24px 80px 24px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior-y: contain;
+      overscroll-behavior-x: none;
+      -webkit-overflow-scrolling: touch;
+      box-sizing: border-box;
+      scrollbar-gutter: stable;
+      transition: background-color 0.3s ease, background-image 0.3s ease;
+    }
+
+    /* Center Content Container */
+    .center-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 680px;
+      margin: 0 auto;
+      z-index: 5;
+      box-sizing: border-box;
+    }
+
+    /* Hero Heading */
+    .hero-heading {
+      font-family: 'Playfair Display', 'Instrument Serif', Georgia, serif;
+      font-size: clamp(2.4rem, 4.2vw, 3.4rem);
+      font-weight: 600;
+      line-height: 1.18;
+      text-align: center;
+      color: var(--text-primary);
+      margin-bottom: 36px;
+      letter-spacing: -0.01em;
+      transition: color 0.3s ease;
+    }
+
+    .hero-heading span {
+      display: block;
+    }
+
+    /* "GET STARTED" Floating Card */
+    .get-started-card {
+      width: 100%;
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      padding: 34px 34px 38px 34px;
+      box-shadow: 
+        0 20px 45px -12px rgba(0, 0, 0, 0.06),
+        0 4px 16px -4px rgba(0, 0, 0, 0.04),
+        0 0 0 1px rgba(0, 0, 0, 0.04);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card-label {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+      margin-bottom: 24px;
+      opacity: 0.9;
+    }
+
+    /* Three Action Cards Grid */
+    .actions-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      width: 100%;
+    }
+
+    .action-button {
+      background-color: var(--action-card-bg);
+      border: 1px solid rgba(0, 0, 0, 0.04);
+      border-radius: var(--radius-md);
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 160px;
+      cursor: pointer;
+      text-decoration: none;
+      color: var(--text-primary);
+      transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
+                  box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+                  background-color 0.22s ease,
+                  border-color 0.22s ease;
+      position: relative;
+    }
+
+    .action-button:hover {
+      background-color: var(--action-card-hover);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 24px -8px rgba(0, 0, 0, 0.1);
+      border-color: rgba(0, 0, 0, 0.08);
+    }
+
+    .action-button:active {
+      transform: translateY(-1px);
+    }
+
+    /* Plus Symbol Header */
+    .plus-icon {
+      font-size: 32px;
+      font-weight: 300;
+      line-height: 1;
+      margin-bottom: 14px;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease;
+    }
+
+    .action-button:hover .plus-icon {
+      transform: scale(1.15);
+    }
+
+    /* Action Card Bottom Content: Label + Illustrated Icon */
+    .action-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .action-title {
+      font-size: 16.5px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      color: var(--text-primary);
+    }
+
+    .illustration-icon {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Database Cylinder Icon (Reference) */
+    .db-icon {
+      width: 44px;
+      height: 48px;
+    }
+
+    /* Document Icon (Context Only) */
+    .doc-icon {
+      width: 36px;
+      height: 44px;
+    }
+
+    /* Bottom-Right Floating Profile / Theme Toggle Pill */
+    .floating-widget {
+      position: fixed;
+      bottom: 22px;
+      right: 24px;
+      z-index: 40;
+    }
+
+    .toggle-pill {
+      width: 66px;
+      height: 34px;
+      background-color: #192024;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 3px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.15s ease;
+    }
+
+    .toggle-pill:hover {
+      transform: scale(1.04);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .toggle-knob {
+      width: 28px;
+      height: 28px;
+      background-color: #ffffff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s ease;
+    }
+
+    .toggle-knob svg {
+      width: 15px;
+      height: 15px;
+      color: #192024;
+    }
+
+    body.dark-theme .toggle-pill {
+      justify-content: flex-start;
+      background-color: #2a343d;
+    }
+
+    /* Modal Dialog for Actions */
+    dialog.app-modal {
+      margin: auto;
+      border: none;
+      border-radius: var(--radius-lg);
+      background: var(--card-bg);
+      color: var(--text-primary);
+      padding: 30px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    dialog.app-modal.modal-large {
+      max-width: 700px;
+      width: 94%;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      padding: 28px 30px;
+    }
+
+    .modal-subtitle {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      margin-top: 3px;
+    }
+
+    .modal-scrollable {
+      max-height: 60vh;
+      overflow-y: auto;
+      scrollbar-gutter: stable;
+      overscroll-behavior: contain;
+      padding-right: 6px;
+      margin-bottom: 20px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+      width: 100%;
+    }
+
+    @media (max-width: 860px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+    }
+
+    .text-input {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      background: var(--action-card-bg);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 13.5px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    body.dark-theme .text-input {
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .text-input:focus {
+      border-color: var(--gold-accent);
+      box-shadow: 0 0 0 2px rgba(166, 138, 86, 0.2);
+    }
+
+    .authors-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .author-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      background: var(--bg-light);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      transition: border-color 0.15s ease;
+    }
+
+    body.dark-theme .author-item {
+      background: #141b1f;
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .author-item:hover {
+      border-color: rgba(166, 138, 86, 0.35);
+    }
+
+    .author-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      flex: 1;
+    }
+
+    .author-fields .text-input {
+      padding: 6px 10px;
+      font-size: 13px;
+      border-radius: 4px;
+    }
+
+    .author-affiliation-input {
+      font-size: 12px !important;
+      color: var(--text-secondary);
+    }
+
+    .author-affiliation-input:focus {
+      color: var(--text-primary);
+    }
+
+    /* Add Author Button - styled exactly like Add Section */
+    .btn-add-author {
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: var(--radius-sm);
+      border: 1.5px dashed rgba(0, 0, 0, 0.15);
+      background: transparent;
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: all 0.2s ease;
+      margin-top: 4px;
+    }
+
+    body.dark-theme .btn-add-author {
+      border-color: rgba(255, 255, 255, 0.15);
+      color: var(--text-primary);
+    }
+
+    .btn-add-author:hover {
+      border-color: var(--gold-accent);
+      color: var(--gold-accent);
+      background: rgba(166, 138, 86, 0.05);
+    }
+
+    .btn-remove-author {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 4px 6px;
+      line-height: 1;
+      border-radius: 4px;
+      transition: color 0.15s;
+      flex-shrink: 0;
+    }
+
+    .btn-remove-author:hover {
+      color: #e0443e;
+    }
+
+    .sections-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 12px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(0, 0, 0, 0.07);
+    }
+
+    body.dark-theme .sections-header {
+      border-top-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .sections-header h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .sections-hint {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+    }
+
+    .sections-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    /* Individual Section Card */
+    .section-card {
+      background: var(--action-card-bg);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: border-color 0.2s;
+    }
+
+    body.dark-theme .section-card {
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .section-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-card-header .text-input {
+      flex: 1;
+      font-weight: 600;
+      background: var(--card-bg);
+    }
+
+    .section-context-input {
+      width: 100%;
+      background: var(--card-bg);
+      font-size: 13px;
+      line-height: 1.5;
+      min-height: 56px;
+      resize: vertical;
+    }
+
+    .btn-remove-section {
+      background: transparent;
+      border: none;
+      color: #e0443e;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+    }
+
+    .btn-remove-section:hover {
+      background: rgba(224, 68, 62, 0.1);
+    }
+
+    /* Sub-elements inside section */
+    .section-elements {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-left: 12px;
+      border-left: 2px solid rgba(166, 138, 86, 0.35);
+      margin: 4px 0;
+    }
+
+    .element-card {
+      background: var(--card-bg);
+      border: 1px solid rgba(0, 0, 0, 0.07);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    body.dark-theme .element-card {
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+
+    .element-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .element-badge {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 3px 7px;
+      border-radius: 4px;
+    }
+
+    .badge-subsection {
+      background: rgba(56, 189, 248, 0.15);
+      color: #0284c7;
+    }
+
+    .badge-image {
+      background: rgba(245, 158, 11, 0.15);
+      color: #d97706;
+    }
+
+    .badge-table {
+      background: rgba(16, 185, 129, 0.15);
+      color: #059669;
+    }
+
+    .badge-equation {
+      background: rgba(168, 85, 247, 0.15);
+      color: #9333ea;
+    }
+
+    body.dark-theme .badge-equation {
+      background: rgba(168, 85, 247, 0.22);
+      color: #c084fc;
+    }
+
+    .btn-remove-element {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      padding: 2px 6px;
+    }
+
+    .btn-remove-element:hover {
+      color: #e0443e;
+    }
+
+    .element-input {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      background: var(--action-card-bg);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+    }
+
+    body.dark-theme .element-input {
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .element-input:focus {
+      border-color: var(--gold-accent);
+    }
+
+    .element-textarea {
+      min-height: 56px;
+      resize: vertical;
+    }
+
+    /* Image Element Type Selector */
+    .image-type-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 2px 0;
+    }
+
+    .image-type-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .image-type-pills {
+      display: inline-flex;
+      background: var(--action-card-bg);
+      padding: 3px;
+      border-radius: 6px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      gap: 4px;
+    }
+
+    body.dark-theme .image-type-pills {
+      border-color: rgba(255, 255, 255, 0.12);
+      background: #141b1f;
+    }
+
+    .image-type-btn {
+      padding: 4px 12px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .image-type-btn.active {
+      background: var(--gold-accent);
+      color: #ffffff;
+      border-color: var(--gold-accent);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    }
+
+    .image-type-btn:not(.active):hover {
+      color: var(--text-primary);
+      background: rgba(166, 138, 86, 0.1);
+    }
+
+    /* Image Drop Box in Section */
+    .image-drop-box {
+      border: 2px dashed rgba(0, 0, 0, 0.15);
+      border-radius: var(--radius-sm);
+      background: var(--action-card-bg);
+      padding: 18px 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+    }
+
+    body.dark-theme .image-drop-box {
+      border-color: rgba(255, 255, 255, 0.15);
+      background: #161e22;
+    }
+
+    .image-drop-box:hover, .image-drop-box.drag-over {
+      border-color: var(--gold-accent);
+      background: rgba(166, 138, 86, 0.06);
+    }
+
+    .image-drop-icon {
+      color: var(--gold-accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 2px;
+    }
+
+    .image-drop-text {
+      font-size: 12.5px;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .image-drop-hint {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .image-drop-badge {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: rgba(166, 138, 86, 0.18);
+      color: #8c7343;
+      font-weight: 700;
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    body.dark-theme .image-drop-badge {
+      color: #e2c88d;
+      background: rgba(196, 167, 108, 0.2);
+    }
+
+    /* Image Preview Container */
+    .image-preview-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 6px;
+      padding: 8px 12px;
+      text-align: left;
+    }
+
+    body.dark-theme .image-preview-wrapper {
+      border-color: rgba(255, 255, 255, 0.1);
+      background: #141b1f;
+    }
+
+    .image-preview-thumb {
+      width: 50px;
+      height: 50px;
+      border-radius: 4px;
+      object-fit: cover;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      background: #ffffff;
+      flex-shrink: 0;
+    }
+
+    .image-preview-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .image-preview-name {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .image-preview-meta {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .btn-change-image {
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--gold-accent);
+      background: transparent;
+      border: 1px solid rgba(166, 138, 86, 0.35);
+      border-radius: 4px;
+      padding: 4px 9px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .btn-change-image:hover {
+      background: rgba(166, 138, 86, 0.12);
+      border-color: var(--gold-accent);
+    }
+
+    /* Table Element Configuration Row */
+    .table-config-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 12px;
+      padding: 4px 0;
+    }
+
+    .table-field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .table-field-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+    }
+
+    .table-num-input {
+      width: 90px;
+      padding: 6px 10px;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .btn-add-table-data {
+      padding: 7px 14px;
+      font-size: 12.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 6px;
+      background: var(--gold-accent);
+      color: #ffffff;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.15s ease;
+      height: 33px;
+    }
+
+    .btn-add-table-data:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+
+    /* Table Preview in Card */
+    .table-card-preview {
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 6px;
+      background: var(--card-bg);
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    body.dark-theme .table-card-preview {
+      border-color: rgba(255, 255, 255, 0.08);
+      background: #141b1f;
+    }
+
+    .table-preview-scroll {
+      max-height: 140px;
+      overflow: auto;
+      scrollbar-gutter: stable;
+    }
+
+    .card-preview-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      text-align: left;
+    }
+
+    .card-preview-table th {
+      background: var(--action-card-bg);
+      padding: 7px 10px;
+      font-weight: 600;
+      color: var(--text-primary);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      white-space: nowrap;
+    }
+
+    body.dark-theme .card-preview-table th {
+      background: #192024;
+      border-bottom-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .card-preview-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      color: var(--text-primary);
+      white-space: nowrap;
+    }
+
+    body.dark-theme .card-preview-table td {
+      border-bottom-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .card-preview-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .table-preview-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 10px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      background: rgba(0, 0, 0, 0.02);
+      border-top: 1px solid rgba(0, 0, 0, 0.06);
+    }
+
+    body.dark-theme .table-preview-footer {
+      background: rgba(255, 255, 255, 0.02);
+      border-top-color: rgba(255, 255, 255, 0.06);
+    }
+
+    .table-quick-edit-link {
+      background: transparent;
+      border: none;
+      color: var(--gold-accent);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .table-quick-edit-link:hover {
+      text-decoration: underline;
+    }
+
+    .table-card-empty-prompt {
+      border: 1.5px dashed rgba(0, 0, 0, 0.15);
+      border-radius: 6px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      background: var(--action-card-bg);
+      transition: all 0.15s ease;
+      margin-top: 4px;
+    }
+
+    body.dark-theme .table-card-empty-prompt {
+      border-color: rgba(255, 255, 255, 0.12);
+      background: #161e22;
+    }
+
+    .table-card-empty-prompt:hover {
+      border-color: var(--gold-accent);
+      color: var(--text-primary);
+    }
+
+    /* Modal Grid Editor Styling */
+    .table-grid-editor-wrap {
+      width: 100%;
+      overflow: auto;
+      max-height: 52vh;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: var(--radius-sm);
+      background: var(--card-bg);
+    }
+
+    body.dark-theme .table-grid-editor-wrap {
+      border-color: rgba(255, 255, 255, 0.12);
+      background: #141b1f;
+    }
+
+    .table-modal-grid {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      min-width: 480px;
+    }
+
+    .table-modal-grid th, .table-modal-grid td {
+      padding: 4px;
+      border-right: 1px solid rgba(0, 0, 0, 0.08);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    body.dark-theme .table-modal-grid th, body.dark-theme .table-modal-grid td {
+      border-right-color: rgba(255, 255, 255, 0.08);
+      border-bottom-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .table-modal-grid th {
+      background: var(--action-card-bg);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    body.dark-theme .table-modal-grid th {
+      background: #192024;
+    }
+
+    .table-row-num {
+      width: 32px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: rgba(0, 0, 0, 0.03);
+      user-select: none;
+    }
+
+    body.dark-theme .table-row-num {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .table-cell-input {
+      width: 100%;
+      min-width: 110px;
+      padding: 7px 9px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      background: var(--action-card-bg);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 12.5px;
+      outline: none;
+      transition: all 0.15s ease;
+    }
+
+    body.dark-theme .table-cell-input {
+      background: #1a2328;
+    }
+
+    .table-cell-input:focus {
+      border-color: var(--gold-accent);
+      background: var(--card-bg);
+      box-shadow: 0 0 0 2px rgba(166, 138, 86, 0.2);
+    }
+
+    .table-header-cell {
+      font-weight: 600;
+      background: rgba(166, 138, 86, 0.1) !important;
+      color: var(--text-primary);
+      border: 1px solid rgba(166, 138, 86, 0.3);
+    }
+
+    body.dark-theme .table-header-cell {
+      background: rgba(166, 138, 86, 0.15) !important;
+      border-color: rgba(166, 138, 86, 0.35);
+    }
+
+    .table-modal-info {
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Equation Component Styling */
+    .equation-input-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
+    .equation-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .equation-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+    }
+
+    .equation-modal-trigger-link {
+      background: transparent;
+      border: none;
+      color: var(--gold-accent);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0;
+    }
+
+    .equation-modal-trigger-link:hover {
+      text-decoration: underline;
+    }
+
+    .equation-formula-input {
+      font-family: 'SF Mono', Monaco, Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.45;
+      min-height: 48px;
+      resize: vertical;
+    }
+
+    .equation-symbols-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 5px;
+      padding-top: 2px;
+    }
+
+    .symbols-hint {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-right: 2px;
+    }
+
+    .symbol-chip {
+      background: var(--action-card-bg);
+      border: 1px solid rgba(0, 0, 0, 0.09);
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-size: 12px;
+      font-family: 'Cambria Math', 'Latin Modern Math', Georgia, serif;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      line-height: 1.2;
+    }
+
+    body.dark-theme .symbol-chip {
+      background: #192024;
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .symbol-chip:hover {
+      border-color: var(--gold-accent);
+      color: var(--gold-accent);
+      background: rgba(166, 138, 86, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .equation-preview-card {
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 6px;
+      background: var(--card-bg);
+      padding: 10px 14px;
+      margin-top: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    body.dark-theme .equation-preview-card {
+      border-color: rgba(255, 255, 255, 0.08);
+      background: #141b1f;
+    }
+
+    .equation-preview-header {
+      font-size: 10.5px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .equation-preview-display {
+      padding: 12px 16px;
+      background: var(--action-card-bg);
+      border-radius: 6px;
+      text-align: center;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow-x: auto;
+      color: var(--text-primary);
+      font-family: 'KaTeX_Main', 'Cambria Math', 'Latin Modern Math', Georgia, serif;
+      font-size: 16px;
+    }
+
+    body.dark-theme .equation-preview-display {
+      background: #192024;
+    }
+
+    .equation-preview-empty {
+      font-size: 12px;
+      font-family: 'Inter', sans-serif;
+      font-style: italic;
+      color: var(--text-secondary);
+    }
+
+    .math-fallback-rendered {
+      font-family: 'Cambria Math', 'Latin Modern Math', 'Times New Roman', Georgia, serif;
+      font-size: 17px;
+      letter-spacing: 0.03em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+    }
+
+    .math-fraction {
+      display: inline-flex;
+      flex-direction: column;
+      vertical-align: middle;
+      text-align: center;
+      padding: 0 4px;
+      font-size: 0.88em;
+    }
+
+    .math-num {
+      border-bottom: 1.5px solid currentColor;
+      padding-bottom: 2px;
+    }
+
+    .math-denom {
+      padding-top: 2px;
+    }
+
+    .math-sqrt {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .math-radicand {
+      border-top: 1.5px solid currentColor;
+      padding: 0 2px;
+      margin-left: 1px;
+    }
+
+    /* Section Component Actions */
+    .section-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-top: 4px;
+    }
+
+    .btn-sub-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      background: var(--card-bg);
+      border: 1px dashed rgba(0, 0, 0, 0.2);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    body.dark-theme .btn-sub-action {
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    .btn-sub-action:hover {
+      border-color: var(--gold-accent);
+      color: var(--gold-accent);
+      background: rgba(166, 138, 86, 0.05);
+    }
+
+    /* Add Section Button */
+    .btn-add-section {
+      width: 100%;
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      border: 2px dashed rgba(0, 0, 0, 0.15);
+      background: transparent;
+      color: var(--text-primary);
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    body.dark-theme .btn-add-section {
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .btn-add-section:hover {
+      border-color: var(--gold-accent);
+      color: var(--gold-accent);
+      background: rgba(166, 138, 86, 0.04);
+    }
+
+    /* Badge on Dashboard Card */
+    .card-status-pill {
+      margin-top: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 9999px;
+      background: rgba(166, 138, 86, 0.18);
+      color: #8c7343;
+      border: 1px solid rgba(166, 138, 86, 0.35);
+      max-width: 90%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    body.dark-theme .card-status-pill {
+      background: rgba(196, 167, 108, 0.2);
+      color: #e2c88d;
+    }
+
+    .modal-input {
+      width: 100%;
+      height: 110px;
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      background: var(--action-card-bg);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+      margin-top: 10px;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .btn-secondary {
+      padding: 9px 18px;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 14px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+
+    .btn-primary {
+      padding: 9px 20px;
+      border-radius: var(--radius-sm);
+      background: #192024;
+      border: none;
+      color: #ffffff;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 14px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      transition: opacity 0.2s;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    /* Notification Toast */
+    .toast {
+      position: fixed;
+      top: 56px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: #192024;
+      color: #ffffff;
+      padding: 10px 22px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 100;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 900px) {
+      .app-window {
+        height: 100dvh;
+      }
+
+      .sidebar {
+        width: 72px;
+        padding: 20px 8px;
+      }
+
+      .brand-title, .nav-text {
+        display: none;
+      }
+
+      .brand-header {
+        justify-content: center;
+        padding: 0 0 24px 0;
+      }
+
+      .nav-link {
+        justify-content: center;
+        padding: 12px;
+      }
+
+      .actions-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-heading {
+        font-size: 2.2rem;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .get-started-card {
+        padding: 20px 16px !important;
+      }
+
+      .main-canvas {
+        padding: 20px 12px 70px 12px;
+      }
+    }
+
+    /* Report Reference Manager Styles */
+    .references-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 440px;
+      overflow-y: auto;
+      scrollbar-gutter: stable;
+      padding-right: 4px;
+      margin-bottom: 6px;
+    }
+
+    .reference-item {
+      background: var(--bg-light);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      transition: border-color 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    body.dark-theme .reference-item {
+      background: #141b1f;
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .reference-item:hover {
+      border-color: rgba(166, 138, 86, 0.4);
+    }
+
+    .reference-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .reference-index-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(166, 138, 86, 0.12);
+      color: var(--gold-accent);
+    }
+
+    body.dark-theme .reference-index-badge {
+      background: rgba(166, 138, 86, 0.22);
+    }
+
+    .btn-remove-reference {
+      background: transparent;
+      border: none;
+      font-size: 18px;
+      line-height: 1;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-remove-reference:hover {
+      color: #e53e3e;
+      background: rgba(229, 62, 62, 0.1);
+    }
+
+    .reference-fields-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .reference-fields-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .reference-field-col {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .reference-field-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+    }
+
+    .reference-link-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .reference-link-icon {
+      position: absolute;
+      left: 10px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+
+    .reference-link-input {
+      padding-left: 30px !important;
+    }
+
+    /* Add Reference Button - styled with similar + sign as Add Author & Add Section */
+    .btn-add-reference {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      border: 1.5px dashed rgba(0, 0, 0, 0.15);
+      background: transparent;
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: all 0.2s ease;
+      margin-top: 8px;
+    }
+
+    body.dark-theme .btn-add-reference {
+      border-color: rgba(255, 255, 255, 0.15);
+      color: var(--text-primary);
+    }
+
+    .btn-add-reference:hover {
+      border-color: var(--gold-accent);
+      color: var(--gold-accent);
+      background: rgba(166, 138, 86, 0.05);
+    }
+
+    .references-empty-prompt {
+      text-align: center;
+      padding: 24px 16px;
+      background: var(--bg-light);
+      border: 1px dashed rgba(0, 0, 0, 0.12);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    body.dark-theme .references-empty-prompt {
+      background: #141b1f;
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .ref-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(166, 138, 86, 0.15);
+      color: var(--gold-accent);
+      margin-top: 6px;
+    }
+
+    /* Abstract & Keywords Styles */
+    .keyword-pill-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      background: rgba(166, 138, 86, 0.12);
+      color: var(--gold-accent);
+      border: 1px solid rgba(166, 138, 86, 0.25);
+    }
+
+    body.dark-theme .keyword-pill-tag {
+      background: rgba(166, 138, 86, 0.2);
+      border-color: rgba(166, 138, 86, 0.35);
+    }
+  </style>
+</head>
+<body data-initial-view="{{ initial_view|default:'reference' }}">
+
+  <!-- Django CSRF Token & Initial Report Data Bootstrap -->
+  <form id="djangoCsrfForm" style="display:none;" aria-hidden="true">
+    {% csrf_token %}
+  </form>
+  <script id="django-report-data" type="application/json">
+    {{ report_data_json|safe|default:"null" }}
+  </script>
+
+  <!-- App Window Container -->
+  <div class="app-window" id="appWindow">
+
+    <!-- Left Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <!-- App Brand Header -->
+      <div class="brand-header">
+        <!-- Document + Gear Logo Icon -->
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <circle cx="10" cy="14" r="2.5"/>
+          <path d="M10 10.5v1M10 16.5v1M6.5 14h1M12.5 14h1"/>
+        </svg>
+        <span class="brand-title">REPORT GENERATOR</span>
+      </div>
+
+      <!-- Navigation Menu -->
+      <nav>
+        <ul class="nav-menu">
+          <!-- Reference Item (Active by default) -->
+          <li class="nav-item">
+            <a href="{% url 'reference' %}" class="nav-link active" data-nav="reference">
+              <!-- Folder with Search Glass Icon -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
+                <circle cx="12" cy="13" r="2.5"/>
+                <line x1="14" y1="15" x2="16.5" y2="17.5"/>
+              </svg>
+              <span class="nav-text">Reference</span>
+            </a>
+          </li>
+
+          <!-- Abstract & Keywords Item -->
+          <li class="nav-item">
+            <a href="{% url 'abstract' %}" class="nav-link" data-nav="abstract">
+              <!-- Document summary / Book with lines Icon -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+                <path d="M8 7h8"/>
+                <path d="M8 11h8"/>
+                <path d="M8 15h5"/>
+              </svg>
+              <span class="nav-text">Abstract &amp; Keywords</span>
+            </a>
+          </li>
+
+          <!-- Context Item -->
+          <li class="nav-item">
+            <a href="{% url 'context' %}" class="nav-link" data-nav="context">
+              <!-- Lightbulb with Rays Icon -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 18h6"/>
+                <path d="M10 22h4"/>
+                <path d="M12 2v1"/>
+                <path d="M12 7a5 5 0 0 0-5 5c0 2 1 3.5 2 4.5h6c1-1 2-2.5 2-4.5a5 5 0 0 0-5-5Z"/>
+                <line x1="4.2" y1="4.2" x2="5.6" y2="5.6"/>
+                <line x1="19.8" y1="4.2" x2="18.4" y2="5.6"/>
+                <line x1="2" y1="12" x2="3.5" y2="12"/>
+                <line x1="20.5" y1="12" x2="22" y2="12"/>
+              </svg>
+              <span class="nav-text">Context</span>
+            </a>
+          </li>
+
+          <!-- Generate PDF Item -->
+          <li class="nav-item">
+            <a href="{% url 'generate' %}" class="nav-link" data-nav="generate">
+              <!-- Document with DOC text and Plus badge Icon -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <rect x="7" y="11" width="7" height="4" rx="1"/>
+                <line x1="16" y1="19" x2="20" y2="19"/>
+                <line x1="18" y1="17" x2="18" y2="21"/>
+              </svg>
+              <span class="nav-text">Generate PDF</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Canvas Area -->
+    <main class="main-canvas" id="mainCanvas">
+
+      <!-- View 1: Reference View (Default Home) -->
+      <div class="view-panel active" id="viewReference">
+        <div class="center-wrapper" style="max-width: 760px;">
+          <!-- Editorial Serif Heading -->
+          <h1 class="hero-heading">
+            <span>Welcome To,</span>
+            <span>Report Generator</span>
+          </h1>
+
+          <!-- "GET STARTED" Floating Card -->
+          <section class="get-started-card" aria-label="Get Started">
+            <h2 class="card-label">GET STARTED</h2>
+
+            <div class="actions-grid">
+              <!-- Left Action Button: Reference -->
+              <button class="action-button" id="btnActionReference" aria-label="Add Reference">
+                <span class="plus-icon">+</span>
+                <div class="action-content">
+                  <span class="action-title">Reference</span>
+                  <!-- 3-Tier Cylinder Database Icon (Gold Outline) -->
+                  <div class="illustration-icon">
+                    <svg class="db-icon" viewBox="0 0 54 58" fill="none">
+                      <!-- Top Tier Ellipse -->
+                      <ellipse cx="27" cy="12" rx="20" ry="7.5" stroke="var(--gold-accent)" stroke-width="2.6" stroke-linecap="round"/>
+                      <!-- Middle Tier Curve -->
+                      <path d="M7 12v15c0 4.14 8.95 7.5 20 7.5s20-3.36 20-7.5V12" stroke="var(--gold-accent)" stroke-width="2.6" stroke-linecap="round"/>
+                      <!-- Bottom Tier Curve -->
+                      <path d="M7 27v15c0 4.14 8.95 7.5 20 7.5s20-3.36 20-7.5V27" stroke="var(--gold-accent)" stroke-width="2.6" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <span class="ref-status-badge" id="refStatusBadge" style="display: none;">✓ 0 References</span>
+                </div>
+              </button>
+
+              <!-- Middle Action Button: Abstract & Keywords -->
+              <a href="{% url 'abstract' %}" class="action-button" id="btnActionAbstract" data-nav="abstract" aria-label="Navigate to Abstract and Keywords">
+                <span class="plus-icon">+</span>
+                <div class="action-content">
+                  <span class="action-title">Abstract &amp; Keywords</span>
+                  <span class="ref-status-badge" id="abstractStatusBadge" style="display: none;">✓ Defined</span>
+                </div>
+              </a>
+
+              <!-- Right Action Button: Context Only (Contains only Context Only + icon) -->
+              <a href="{% url 'context' %}" class="action-button" id="btnActionContext" data-nav="context" aria-label="Navigate to Context Only">
+                <span class="plus-icon">+</span>
+                <div class="action-content">
+                  <span class="action-title">Context Only</span>
+                  <span class="ref-status-badge" id="contextStatusBadge" style="display: none;">✓ Configured</span>
+                </div>
+              </a>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- View 2: Abstract & Keywords View -->
+      <div class="view-panel" id="viewAbstract">
+        <div class="center-wrapper" style="max-width: 680px;">
+          <h1 class="hero-heading" style="margin-bottom: 24px;">
+            <span>Abstract &amp; Keywords</span>
+          </h1>
+
+          <section class="get-started-card" style="padding: 28px 32px; width: 100%;">
+            <div class="sections-header" style="width: 100%; margin-bottom: 20px;">
+              <div>
+                <h4>Executive Abstract &amp; Keywords</h4>
+                <span class="sections-hint">Define a single abstract and key indexing terms for the generated report</span>
+              </div>
+            </div>
+
+            <!-- Single Abstract Field -->
+            <div class="form-group" style="width: 100%; margin-bottom: 22px;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                <label for="reportAbstract" style="font-weight: 600; font-size: 13px;">Abstract</label>
+                <span id="abstractWordCount" style="font-size: 11.5px; color: var(--text-secondary);">0 words</span>
+              </div>
+              <textarea id="reportAbstract" class="element-input element-textarea" rows="5" style="width: 100%; resize: vertical; min-height: 125px; line-height: 1.6;" placeholder="Enter the report abstract highlighting key findings, scope, and objectives..."></textarea>
+            </div>
+
+            <!-- Single Keywords Field -->
+            <div class="form-group" style="width: 100%; margin-bottom: 24px;">
+              <label for="reportKeywords" style="font-weight: 600; font-size: 13px; margin-bottom: 6px; display: block;">Keywords</label>
+              <input type="text" id="reportKeywords" class="text-input" placeholder="Type keywords separated by commas (e.g. Market Research, AI Analysis, Q4 Strategy)">
+              <div class="keywords-tags-container" id="keywordsTagList" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;"></div>
+            </div>
+
+            <!-- Navigation Buttons: Back to References & Continue to Context -->
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding-top: 14px; border-top: 1px solid rgba(0,0,0,0.06);">
+              <a href="{% url 'reference' %}" class="btn-secondary" id="btnBackToReferences" data-nav="reference" style="display: inline-flex; align-items: center; gap: 6px;">
+                &larr; Back to References
+              </a>
+              <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn-secondary" id="btnSaveAbstract">Save</button>
+                <a href="{% url 'context' %}" class="btn-primary" id="btnContinueToContext" data-nav="context" style="display: inline-flex; align-items: center; gap: 6px;">
+                  Continue to Context &rarr;
+                </a>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- View 3: Context View (Dedicated to Context structure - Contains ONLY Context, NO Reference button!) -->
+      <div class="view-panel" id="viewContext">
+        <div class="center-wrapper" style="max-width: 680px;">
+          <h1 class="hero-heading" style="margin-bottom: 24px;">
+            <span>Report Context</span>
+          </h1>
+
+          <section class="get-started-card" style="padding: 28px 32px; width: 100%;">
+            <!-- Title & Author Fields -->
+            <div class="form-row" style="width: 100%;">
+              <div class="form-group">
+                <label for="reportTitle">Report Title</label>
+                <input type="text" id="reportTitle" class="text-input" placeholder="e.g. Strategic Growth & Market Analysis 2026">
+              </div>
+              <div class="form-group" id="authorsGroup">
+                <label>Authors &amp; Affiliation</label>
+                <div id="authorsList" class="authors-list"></div>
+                <button type="button" class="btn-add-author" id="btnAddAuthor">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                  <span>Add Author</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Sections Structure Header -->
+            <div class="sections-header" style="width: 100%;">
+              <div>
+                <h4>Sections Structure</h4>
+                <span class="sections-hint">Each section contains [Title, Context] above dynamic Subsections, Images, Tables, and Equations</span>
+              </div>
+            </div>
+
+            <!-- Dynamic Sections Container -->
+            <div id="sectionsContainer" class="sections-container" style="width: 100%;"></div>
+
+            <!-- Add Section Button -->
+            <button type="button" class="btn-add-section" id="btnAddSection" style="margin-bottom: 16px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              <span>Add Section</span>
+            </button>
+
+            <!-- Context Actions Footer -->
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 10px; padding-top: 14px; border-top: 1px solid rgba(0,0,0,0.06);">
+              <a href="{% url 'abstract' %}" class="btn-secondary" id="btnBackToAbstract" data-nav="abstract" style="display: inline-flex; align-items: center; gap: 6px;">
+                &larr; Back to Abstract
+              </a>
+              <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn-secondary" id="btnSaveContext">Save Context</button>
+                <a href="{% url 'generate' %}" class="btn-primary" id="btnContinueToGenerate" data-nav="generate" style="display: inline-flex; align-items: center; gap: 6px;">
+                  Continue to Generate PDF &rarr;
+                </a>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- View 4: Generate PDF View -->
+      <div class="view-panel" id="viewGenerate">
+        <div class="center-wrapper" style="max-width: 600px;">
+          <h1 class="hero-heading" style="margin-bottom: 24px;">
+            <span>Generate PDF</span>
+          </h1>
+
+          <section class="get-started-card" style="padding: 32px 30px; width: 100%; text-align: center;">
+            <h2 class="card-label">EXPORT REPORT</h2>
+            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 22px; line-height: 1.6;">
+              Review your configured context schema before generating the final publication-ready PDF document.
+            </p>
+
+            <div id="generateSummaryBox" style="background: var(--action-card-bg); border-radius: var(--radius-sm); padding: 18px 20px; text-align: left; margin-bottom: 22px; font-size: 13.5px; border: 1px solid rgba(0,0,0,0.06); display: flex; flex-direction: column; gap: 6px;">
+              <div style="font-weight: 600;" id="summaryTitleText">Title: Strategic Growth Analysis 2026</div>
+              <div style="color: var(--text-secondary);" id="summaryAuthorText">Author: Research & Strategy Group</div>
+              <div style="color: var(--text-secondary);" id="summaryReferencesText">References: 2 Configured</div>
+              <div style="color: var(--text-secondary);" id="summaryAbstractText">Abstract: Defined</div>
+              <div style="color: var(--text-secondary);" id="summaryKeywordsText">Keywords: None</div>
+              <div style="color: var(--text-secondary);" id="summarySectionsText">Configured: 1 Section</div>
+            </div>
+
+            <div id="generateErrorContainer" style="display: none; margin-bottom: 20px; text-align: left;"></div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 12px;">
+              <a href="{% url 'context' %}" class="btn-secondary" id="btnBackToContext" data-nav="context" style="display: inline-flex; align-items: center; gap: 6px;">
+                &larr; Back to Context
+              </a>
+              <button class="btn-primary" id="btnGenerateReport" style="padding: 12px 28px; font-size: 14.5px; flex: 1;">
+                Generate PDF Document
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- Floating Profile / Theme Switcher Pill in Bottom-Right -->
+      <div class="floating-widget">
+        <button class="toggle-pill" id="themeToggle" title="Toggle Theme / Profile Mode" aria-label="User profile settings and theme toggle">
+          <div class="toggle-knob">
+            <!-- User Profile Silhouette Icon -->
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12Zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8Z"/>
+            </svg>
+          </div>
+        </button>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Interactive Modal for Report References -->
+  <dialog class="app-modal modal-large" id="modalReference">
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title" id="refModalTitle">Report References</h3>
+        <span class="modal-subtitle">Add references with title and link to cite in your generated report.</span>
+      </div>
+      <button class="modal-close" data-close="modalReference">&times;</button>
+    </div>
+    <div class="modal-body" style="padding-bottom: 8px;">
+      <!-- Dynamic References List -->
+      <div id="referencesList" class="references-list"></div>
+
+      <!-- Add Reference Button with similar + sign -->
+      <button type="button" class="btn-add-reference" id="btnAddReference">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        <span>Add Reference</span>
+      </button>
+    </div>
+    <div class="modal-footer" style="justify-content: space-between; align-items: center;">
+      <span class="image-drop-badge" id="referenceModalBadge">0 References</span>
+      <div style="display: flex; gap: 10px;">
+        <button type="button" class="btn-secondary" data-close="modalReference">Cancel</button>
+        <button type="button" class="btn-secondary" id="btnSaveReference">Save</button>
+        <button type="button" class="btn-primary" id="btnSaveReferenceAndContinue">Save &amp; Continue &rarr;</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Interactive Modal for Table Data Entry -->
+  <dialog class="app-modal modal-large" id="modalTableData">
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title" id="tableModalTitle">Table Data Editor</h3>
+        <span class="modal-subtitle" id="tableModalSubtitle">Row 1 represents the column headings. Fill in cell values below.</span>
+      </div>
+      <button class="modal-close" data-close="modalTableData">&times;</button>
+    </div>
+    <div class="modal-body" style="padding-bottom: 8px;">
+      <div class="table-grid-editor-wrap">
+        <table class="table-modal-grid" id="tableModalGrid">
+          <!-- Dynamic grid inputs injected here -->
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content: space-between; align-items: center;">
+      <div class="table-modal-info" id="tableModalInfo">
+        <span class="image-drop-badge" id="tableModalBadge">4 Cols &times; 3 Rows</span>
+        <span style="font-size: 11.5px; color: var(--text-secondary);">Row 1 = Headings</span>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <button type="button" class="btn-secondary" data-close="modalTableData">Cancel</button>
+        <button type="button" class="btn-primary" id="btnSaveTableData">Save Data</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Interactive Modal for Equation Formula Entry -->
+  <dialog class="app-modal" id="modalEquationEditor" style="max-width: 600px; width: 92%;">
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title" id="equationModalTitle">Edit Equation</h3>
+        <span class="modal-subtitle">Type your mathematical formula or LaTeX expression below.</span>
+      </div>
+      <button class="modal-close" data-close="modalEquationEditor">&times;</button>
+    </div>
+    <div class="modal-body" style="padding-bottom: 8px;">
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label for="modalEqCaption">Equation Name / Label</label>
+        <input type="text" id="modalEqCaption" class="text-input" placeholder="e.g. Equation 1: Capital Asset Pricing Model">
+      </div>
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label for="modalEqFormula">Equation Formula (LaTeX / Math)</label>
+        <textarea id="modalEqFormula" class="element-input equation-formula-input" rows="3" placeholder="e.g. E = mc^2  or  \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}"></textarea>
+      </div>
+      <!-- Quick Math Symbol Chips -->
+      <div class="equation-symbols-bar" id="modalEqSymbolsBar" style="margin-bottom: 14px;">
+        <span class="symbols-hint">Quick Insert:</span>
+        <button type="button" class="symbol-chip" data-modal-insert="^2" title="Superscript 2">x²</button>
+        <button type="button" class="symbol-chip" data-modal-insert="\sqrt{x}" title="Square root">√x</button>
+        <button type="button" class="symbol-chip" data-modal-insert="\frac{a}{b}" title="Fraction">\frac{a}{b}</button>
+        <button type="button" class="symbol-chip" data-modal-insert="\sum_{i=1}^n" title="Summation">∑</button>
+        <button type="button" class="symbol-chip" data-modal-insert="\int_a^b" title="Integral">∫</button>
+        <button type="button" class="symbol-chip" data-modal-insert="\alpha" title="Alpha">α</button>
+        <button type="button" class="symbol-chip" data-modal-insert="\beta" title="Beta">β</button>
+        <button type="button" class="symbol-chip" data-modal-insert="\pi" title="Pi">π</button>
+        <button type="button" class="symbol-chip" data-modal-insert="\pm" title="Plus-minus">±</button>
+        <button type="button" class="symbol-chip" data-modal-insert="\infty" title="Infinity">∞</button>
+      </div>
+      <div class="equation-preview-card">
+        <div class="equation-preview-header">
+          <span>Live Formatted Preview</span>
+        </div>
+        <div class="equation-preview-display" id="modalEqPreviewDisplay">
+          <span class="equation-preview-empty">Type an equation to see live formatted preview</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content: flex-end; gap: 10px;">
+      <button type="button" class="btn-secondary" data-close="modalEquationEditor">Cancel</button>
+      <button type="button" class="btn-primary" id="btnSaveEquationModal">Save Equation</button>
+    </div>
+  </dialog>
+
+  <!-- Interactive Toast Notification -->
+  <div class="toast" id="appToast">Notification message</div>
+
+  <script>
+    // Elements & Navigation
+    const navLinks = document.querySelectorAll('.nav-link');
+    const viewPanels = {
+      reference: document.getElementById('viewReference'),
+      abstract: document.getElementById('viewAbstract'),
+      context: document.getElementById('viewContext'),
+      generate: document.getElementById('viewGenerate')
+    };
+
+    const btnActionReference = document.getElementById('btnActionReference');
+    const btnActionAbstract = document.getElementById('btnActionAbstract');
+    const btnActionContext = document.getElementById('btnActionContext');
+    const modalReference = document.getElementById('modalReference');
+    const modalTableData = document.getElementById('modalTableData');
+    const tableModalTitle = document.getElementById('tableModalTitle');
+    const tableModalGrid = document.getElementById('tableModalGrid');
+    const tableModalBadge = document.getElementById('tableModalBadge');
+    const btnSaveTableData = document.getElementById('btnSaveTableData');
+    let activeTableEdit = null;
+    const modalEquationEditor = document.getElementById('modalEquationEditor');
+    const modalEqCaption = document.getElementById('modalEqCaption');
+    const modalEqFormula = document.getElementById('modalEqFormula');
+    const modalEqPreviewDisplay = document.getElementById('modalEqPreviewDisplay');
+    const btnSaveEquationModal = document.getElementById('btnSaveEquationModal');
+    let activeEquationEdit = null;
+    const closeButtons = document.querySelectorAll('[data-close]');
+    const themeToggle = document.getElementById('themeToggle');
+    const toast = document.getElementById('appToast');
+
+    // Reference Management Elements
+    const referencesList = document.getElementById('referencesList');
+    const btnAddReference = document.getElementById('btnAddReference');
+    const btnSaveReference = document.getElementById('btnSaveReference');
+    const btnSaveReferenceAndContinue = document.getElementById('btnSaveReferenceAndContinue');
+    const referenceModalBadge = document.getElementById('referenceModalBadge');
+    const refStatusBadge = document.getElementById('refStatusBadge');
+    let workingReferences = [];
+
+    // Abstract & Keywords Elements
+    const reportAbstract = document.getElementById('reportAbstract');
+    const reportKeywords = document.getElementById('reportKeywords');
+    const abstractWordCount = document.getElementById('abstractWordCount');
+    const keywordsTagList = document.getElementById('keywordsTagList');
+    const abstractStatusBadge = document.getElementById('abstractStatusBadge');
+    const contextStatusBadge = document.getElementById('contextStatusBadge');
+    const btnBackToReferences = document.getElementById('btnBackToReferences');
+    const btnSaveAbstract = document.getElementById('btnSaveAbstract');
+    const btnContinueToContext = document.getElementById('btnContinueToContext');
+    const btnBackToAbstract = document.getElementById('btnBackToAbstract');
+    const btnContinueToGenerate = document.getElementById('btnContinueToGenerate');
+    const btnBackToContext = document.getElementById('btnBackToContext');
+
+    // Context Structure Elements
+    const sectionsContainer = document.getElementById('sectionsContainer');
+    const btnAddSection = document.getElementById('btnAddSection');
+    const reportTitleInput = document.getElementById('reportTitle');
+    const authorsList = document.getElementById('authorsList');
+    const btnAddAuthor = document.getElementById('btnAddAuthor');
+    const btnSaveContext = document.getElementById('btnSaveContext');
+    const btnGenerateReport = document.getElementById('btnGenerateReport');
+    const mainCanvas = document.getElementById('mainCanvas');
+    const appWindow = document.getElementById('appWindow');
+
+    if (appWindow) {
+      appWindow.addEventListener('scroll', () => {
+        if (appWindow.scrollLeft !== 0) appWindow.scrollLeft = 0;
+      }, { passive: true });
+    }
+
+    // Toast Notification Helper
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2600);
+    }
+
+    // Django CSRF Token Helper reading from csrftoken cookie or hidden input
+    function getCSRFToken() {
+      const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+      if (match) {
+        return decodeURIComponent(match[1]);
+      }
+      const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+      if (csrfInput && csrfInput.value && !csrfInput.value.includes('{%')) {
+        return csrfInput.value;
+      }
+      return '';
+    }
+
+    // Helper to convert base64 data URL to a binary Blob
+    function dataUrlToBlob(dataUrl) {
+      if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.includes(',')) {
+        throw new Error('Invalid image data URL.');
+      }
+      const parts = dataUrl.split(',');
+      const mimeMatch = parts[0].match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : 'image/png';
+      const byteCharacters = atob(parts[1]);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      return new Blob([byteArray], { type: mime });
+    }
+
+    // Small helper for JSON POST requests with CSRF header and same-origin credentials
+    async function postJson(url, data) {
+      const token = getCSRFToken();
+      const res = await fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': token,
+        },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const errorMsg = json.error || (Array.isArray(json.errors) ? json.errors.join('; ') : null) || `Request to ${url} failed with status ${res.status}`;
+        throw new Error(errorMsg);
+      }
+      return json;
+    }
+
+    // Load initial report data provided by Django view
+    function loadDjangoInitialData() {
+      const scriptTag = document.getElementById('django-report-data');
+      if (scriptTag && scriptTag.textContent) {
+        try {
+          const raw = scriptTag.textContent.trim();
+          if (raw && raw !== 'null' && !raw.includes('{{')) {
+            const loaded = JSON.parse(raw);
+            if (loaded && typeof loaded === 'object') {
+              reportStructure = Object.assign(reportStructure, loaded);
+            }
+          }
+        } catch (e) {
+          console.warn('Could not parse initial Django report data:', e);
+        }
+      }
+    }
+
+    // Named route slugs for Django SPA
+    const VIEW_SLUGS = ['reference', 'abstract', 'context', 'generate'];
+
+    function getRouteUrlForView(viewName) {
+      // 1. If an anchor tag with Django-rendered href exists, use its href
+      const anchor = document.querySelector(`a[data-nav="${viewName}"]`);
+      if (anchor) {
+        const href = anchor.getAttribute('href');
+        if (href && !href.includes('{%') && !href.startsWith('javascript:')) {
+          return href;
+        }
+      }
+      // 2. Standalone file fallback
+      if (window.location.protocol === 'file:') {
+        return `#${viewName}`;
+      }
+      // 3. Clean Django named route fallback
+      return viewName === 'reference' ? '/reference/' : `/${viewName}/`;
+    }
+
+    function resolveInitialView() {
+      // 1. Hash-based routing (#context, #abstract, etc.)
+      const hash = window.location.hash.replace(/^#\/?/, '').trim().toLowerCase();
+      if (VIEW_SLUGS.includes(hash)) {
+        return hash;
+      }
+
+      // 2. Path-based routing (/abstract/, /context/, /generate/, /reference/)
+      const pathname = window.location.pathname.toLowerCase();
+      for (const slug of ['generate', 'context', 'abstract', 'reference']) {
+        if (pathname.includes(slug)) {
+          return slug;
+        }
+      }
+
+      // 3. Django template body data-initial-view attribute
+      const bodyInitial = document.body ? document.body.getAttribute('data-initial-view') : '';
+      if (bodyInitial && !bodyInitial.includes('{{') && VIEW_SLUGS.includes(bodyInitial)) {
+        return bodyInitial;
+      }
+
+      // Default view
+      return 'reference';
+    }
+
+    // View Switching Function with browser history & URL synchronization
+    function switchView(viewName, updateUrl = true) {
+      if (!VIEW_SLUGS.includes(viewName)) viewName = 'reference';
+
+      // Update sidebar nav active state
+      navLinks.forEach(link => {
+        if (link.getAttribute('data-nav') === viewName) {
+          link.classList.add('active');
+        } else {
+          link.classList.remove('active');
+        }
+      });
+
+      // Show requested panel and hide others
+      Object.keys(viewPanels).forEach(key => {
+        const panel = viewPanels[key];
+        if (panel) {
+          if (key === viewName) {
+            panel.classList.add('active');
+          } else {
+            panel.classList.remove('active');
+          }
+        }
+      });
+
+      if (mainCanvas) {
+        mainCanvas.scrollTop = 0;
+        mainCanvas.scrollLeft = 0;
+      }
+      if (appWindow) {
+        appWindow.scrollLeft = 0;
+      }
+
+      // Update browser history URL
+      if (updateUrl && window.history && window.history.pushState) {
+        const targetUrl = getRouteUrlForView(viewName);
+        try {
+          window.history.pushState({ view: viewName }, '', targetUrl);
+        } catch (e) {
+          try {
+            window.location.hash = viewName;
+          } catch (_) {}
+        }
+      }
+
+      if (viewName === 'abstract') {
+        syncAbstractInputs();
+      } else if (viewName === 'context') {
+        syncContextInputs();
+      } else if (viewName === 'generate') {
+        updateGenerateSummary();
+      }
+    }
+
+    // Centralized click listener with event delegation for all Django named-route [data-nav] links/buttons
+    document.addEventListener('click', (e) => {
+      const navTarget = e.target.closest('[data-nav]');
+      if (!navTarget) return;
+
+      const viewName = navTarget.getAttribute('data-nav');
+      if (viewName && VIEW_SLUGS.includes(viewName)) {
+        // Allow standard modifier keys (Ctrl/Cmd/Shift/Alt) to open new tabs
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+          return;
+        }
+        e.preventDefault();
+
+        // Perform view-specific save/transition actions if needed
+        if (navTarget.id === 'btnContinueToContext') {
+          if (reportAbstract) reportStructure.abstract = reportAbstract.value.trim();
+          if (reportKeywords) reportStructure.keywords = reportKeywords.value.trim();
+          updateAbstractDashboardBadge();
+          updateGenerateSummary();
+          showToast('✓ Saved Abstract & Keywords. Moved to Context.');
+        } else if (navTarget.id === 'btnContinueToGenerate') {
+          if (reportTitleInput) reportStructure.title = reportTitleInput.value.trim();
+          const validAuthors = getFormattedAuthors();
+          reportStructure.author = validAuthors.length ? validAuthors.join(', ') : 'Anonymous';
+          updateGenerateSummary();
+          showToast('✓ Context saved. Moved to Generate PDF.');
+        } else if (navTarget.id === 'btnBackToReferences') {
+          showToast('Switched to Reference View');
+        } else if (navTarget.id === 'btnBackToAbstract') {
+          showToast('Switched to Abstract & Keywords');
+        } else if (navTarget.id === 'btnBackToContext') {
+          showToast('Switched to Report Context');
+        } else if (navTarget.id === 'btnActionAbstract') {
+          showToast('Switched to Abstract & Keywords');
+        } else if (navTarget.id === 'btnActionContext') {
+          showToast('Switched to Report Context');
+        }
+
+        switchView(viewName, true);
+      }
+    });
+
+    // Browser back/forward navigation support
+    window.addEventListener('popstate', (e) => {
+      const targetView = (e.state && e.state.view) || resolveInitialView();
+      switchView(targetView, false);
+    });
+
+    // "Reference" card click opens interactive Reference Manager modal
+    if (btnActionReference) {
+      btnActionReference.addEventListener('click', () => {
+        openReferenceModal();
+      });
+    }
+
+    // Reference Manager Modal Logic
+    function openReferenceModal() {
+      if (!modalReference) return;
+      workingReferences = (reportStructure.references || []).map(r => ({ ...r }));
+      renderReferencesModal();
+      modalReference.showModal();
+    }
+
+    function renderReferencesModal() {
+      if (!referencesList) return;
+      referencesList.innerHTML = '';
+
+      if (workingReferences.length === 0) {
+        referencesList.innerHTML = `
+          <div class="references-empty-prompt">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold-accent)" stroke-width="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+            <span>No references added yet. Click <strong>Add Reference</strong> below to add your first citation.</span>
+          </div>
+        `;
+      } else {
+        workingReferences.forEach((ref, index) => {
+          const item = document.createElement('div');
+          item.className = 'reference-item';
+          item.dataset.refIdx = index;
+          item.innerHTML = `
+            <div class="reference-item-header">
+              <span class="reference-index-badge">Reference ${index + 1}</span>
+              <button type="button" class="btn-remove-reference" data-action="remove-reference" data-ref-idx="${index}" title="Remove Reference">&times;</button>
+            </div>
+            <div class="reference-fields-row">
+              <div class="reference-field-col">
+                <label class="reference-field-label">Title</label>
+                <input type="text" class="element-input ref-title-input" placeholder="Title (e.g. Industry Benchmark Report 2026)" value="${escapeHtml(ref.title || '')}" data-ref-idx="${index}" data-prop="title">
+              </div>
+              <div class="reference-field-col">
+                <label class="reference-field-label">Link</label>
+                <div class="reference-link-wrap">
+                  <svg class="reference-link-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                  </svg>
+                  <input type="url" class="element-input reference-link-input ref-link-input" placeholder="Link (e.g. https://example.com/source)" value="${escapeHtml(ref.link || '')}" data-ref-idx="${index}" data-prop="link">
+                </div>
+              </div>
+            </div>
+          `;
+          referencesList.appendChild(item);
+        });
+      }
+
+      if (referenceModalBadge) {
+        referenceModalBadge.textContent = `${workingReferences.length} Reference${workingReferences.length === 1 ? '' : 's'}`;
+      }
+    }
+
+    if (referencesList) {
+      referencesList.addEventListener('input', (e) => {
+        const input = e.target.closest('input[data-ref-idx]');
+        if (!input) return;
+        const idx = parseInt(input.dataset.refIdx, 10);
+        const prop = input.dataset.prop;
+        if (workingReferences[idx] && prop) {
+          workingReferences[idx][prop] = input.value;
+        }
+      });
+
+      referencesList.addEventListener('click', (e) => {
+        const removeBtn = e.target.closest('[data-action="remove-reference"]');
+        if (removeBtn) {
+          const idx = parseInt(removeBtn.dataset.refIdx, 10);
+          workingReferences.splice(idx, 1);
+          renderReferencesModal();
+        }
+      });
+    }
+
+    if (btnAddReference) {
+      btnAddReference.addEventListener('click', () => {
+        workingReferences.push({
+          id: 'ref_' + Date.now(),
+          title: '',
+          link: ''
+        });
+        renderReferencesModal();
+        const inputs = referencesList.querySelectorAll('.ref-title-input');
+        const lastInput = inputs[inputs.length - 1];
+        if (lastInput) lastInput.focus();
+      });
+    }
+
+    if (btnSaveReference) {
+      btnSaveReference.addEventListener('click', () => {
+        reportStructure.references = workingReferences.map(r => ({
+          ...r,
+          title: (r.title || '').trim(),
+          link: (r.link || '').trim()
+        }));
+        if (modalReference) modalReference.close();
+        updateReferenceDashboardBadge();
+        updateGenerateSummary();
+        showToast(`✓ Saved ${reportStructure.references.length} reference${reportStructure.references.length === 1 ? '' : 's'}`);
+      });
+    }
+
+    if (btnSaveReferenceAndContinue) {
+      btnSaveReferenceAndContinue.addEventListener('click', () => {
+        reportStructure.references = workingReferences.map(r => ({
+          ...r,
+          title: (r.title || '').trim(),
+          link: (r.link || '').trim()
+        }));
+        if (modalReference) modalReference.close();
+        updateReferenceDashboardBadge();
+        updateGenerateSummary();
+        switchView('abstract', true);
+        showToast(`✓ References saved. Continuing to Abstract & Keywords.`);
+      });
+    }
+
+    function updateReferenceDashboardBadge() {
+      if (!refStatusBadge) return;
+      const count = (reportStructure.references || []).length;
+      if (count > 0) {
+        refStatusBadge.style.display = 'inline-flex';
+        refStatusBadge.textContent = `✓ ${count} Reference${count > 1 ? 's' : ''}`;
+      } else {
+        refStatusBadge.style.display = 'none';
+      }
+    }
+
+    // Modal close handlers
+    closeButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-close');
+        const modal = document.getElementById(targetId);
+        if (modal) modal.close();
+      });
+    });
+
+    // Close on backdrop click for all modals
+    [modalReference, modalTableData, modalEquationEditor].forEach(m => {
+      if (m) {
+        m.addEventListener('click', (e) => {
+          const rect = m.getBoundingClientRect();
+          const isInDialog = (rect.top <= e.clientY && e.clientY <= rect.top + rect.height
+            && rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
+          if (!isInDialog) {
+            m.close();
+          }
+        });
+      }
+    });
+
+    // Context Report Structure Data Store [title, author, abstract, keywords, references, sections]
+    let reportStructure = {
+      title: 'Strategic Growth & Market Analysis 2026',
+      authors: [
+        { name: 'Dr. Alex Morgan', affiliation: 'Research & Strategy Group' },
+        { name: 'Sarah Chen', affiliation: 'Global Analytics Lab' }
+      ],
+      references: [
+        {
+          id: 'ref_1',
+          title: 'Global Market Insights & Forecast 2026',
+          link: 'https://example.com/reports/market-insights-2026'
+        },
+        {
+          id: 'ref_2',
+          title: 'Macroeconomic Strategic Framework Documentation',
+          link: 'https://example.com/framework/macro-2026'
+        }
+      ],
+      abstract: 'This report delivers a rigorous analysis of emerging quarterly trends, capital deployment efficiency, and risk-adjusted growth catalysts across key enterprise verticals for 2026.',
+      keywords: 'Market Analysis, Strategic Expansion, Enterprise Performance, Fiscal 2026, Predictive Analytics',
+      sections: [
+        {
+          id: 'sec_1',
+          title: '1. Executive Summary',
+          context: 'Comprehensive overview of quarterly market performance, core growth catalysts, and strategic expansion milestones for 2026.',
+          elements: [
+            { id: 'sub_1', type: 'subsection', title: '1.1 Scope & Strategic Objectives', content: 'Comprehensive overview of key expansion drivers and quantitative milestones.' },
+            { id: 'img_1', type: 'image', caption: 'Figure 1: Global Performance Distribution', width: '8cm', imageType: 'png', fileName: '', previewData: '', url: '', imageId: null },
+            { 
+              id: 'tbl_1', 
+              type: 'table', 
+              caption: 'Table 1: Key Growth Metrics & Targets', 
+              columnsCount: 4, 
+              rowsCount: 3, 
+              gridData: [
+                ['Metric', 'Baseline', 'Q4 Target', 'Projected'],
+                ['Revenue Growth', '8.4%', '14.5%', '16.2%'],
+                ['Operating Margin', '22.1%', '25.0%', '25.8%']
+              ],
+              rows: 'Metric, Baseline, Q4 Target, Projected\nRevenue Growth, 8.4%, 14.5%, 16.2%\nOperating Margin, 22.1%, 25.0%, 25.8%' 
+            },
+            {
+              id: 'eq_1',
+              type: 'equation',
+              caption: 'Equation 1: Capital Asset Pricing Model (CAPM)',
+              equation: 'E(R_i) = R_f + \\beta_i (E(R_m) - R_f)'
+            }
+          ]
+        }
+      ]
+    };
+
+    // Save all form data to Django backend session endpoints
+    async function saveAllToBackend() {
+      // 0. Synchronize active input elements into reportStructure
+      if (reportTitleInput) {
+        reportStructure.title = reportTitleInput.value.trim();
+      }
+      if (reportAbstract) {
+        reportStructure.abstract = reportAbstract.value.trim();
+      }
+      if (reportKeywords) {
+        reportStructure.keywords = reportKeywords.value.trim();
+      }
+
+      // Pre-check: If an image element has no image at all, stop before sending anything
+      for (let sIdx = 0; sIdx < (reportStructure.sections || []).length; sIdx++) {
+        const sec = reportStructure.sections[sIdx];
+        const secNum = sIdx + 1;
+        for (const elem of (sec.elements || [])) {
+          if (elem.type === 'image') {
+            const hasImage = Boolean(elem.imageId || (elem.previewData && elem.previewData.trim()));
+            if (!hasImage) {
+              const msg = `Add an image or remove the empty image block in Section ${secNum}.`;
+              showToast(`⚠ ${msg}`);
+              throw new Error(msg);
+            }
+          }
+        }
+      }
+
+      // 1. Upload new images (has previewData but no imageId)
+      for (const sec of (reportStructure.sections || [])) {
+        for (const elem of (sec.elements || [])) {
+          if (elem.type === 'image' && elem.previewData && !elem.imageId) {
+            const fmt = (elem.imageType || 'png').toLowerCase().replace('jpeg', 'jpg');
+            const blob = dataUrlToBlob(elem.previewData);
+            const formData = new FormData();
+            formData.append('fmt', fmt);
+            const fileName = elem.fileName || `image.${fmt}`;
+            formData.append('image', blob, fileName);
+
+            const csrfToken = getCSRFToken();
+            const res = await fetch('/images/upload/', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: {
+                'X-CSRFToken': csrfToken,
+              },
+              body: formData,
+            });
+
+            const resData = await res.json().catch(() => ({}));
+            if (!res.ok) {
+              const errMsg = resData.error || (Array.isArray(resData.errors) ? resData.errors.join('; ') : null) || 'Failed to upload image.';
+              showToast(`⚠ ${errMsg}`);
+              throw new Error(errMsg);
+            }
+
+            elem.imageId = resData.image_id;
+          }
+        }
+      }
+
+      // 2. POST /references/ with references
+      const refsPayload = {
+        references: (reportStructure.references || []).map(r => ({
+          title: (r.title || '').trim(),
+          link: (r.link || '').trim(),
+        }))
+      };
+      await postJson('/references/', refsPayload);
+
+      // 3. POST /title-authors/ with title and authors
+      const authorsPayload = (reportStructure.authors || []).map(a => {
+        if (typeof a === 'string') return { name: a.trim(), affiliation: '' };
+        return {
+          name: (a.name || '').trim(),
+          affiliation: (a.affiliation || '').trim(),
+        };
+      });
+      await postJson('/title-authors/', {
+        title: (reportStructure.title || '').trim(),
+        authors: authorsPayload,
+      });
+
+      // 4. POST /abstract-keywords/ with abstract and keywords
+      await postJson('/abstract-keywords/', {
+        abstract: (reportStructure.abstract || '').trim(),
+        keywords: (reportStructure.keywords || '').trim(),
+      });
+
+      // 5. POST /sections/ with clean sections payload (no previewData or large fields)
+      const cleanSections = (reportStructure.sections || []).map(sec => {
+        const cleanElements = (sec.elements || []).map(elem => {
+          if (elem.type === 'subsection') {
+            return {
+              type: 'subsection',
+              title: elem.title || '',
+              content: elem.content || '',
+            };
+          } else if (elem.type === 'image') {
+            const fmt = (elem.imageType || 'png').toLowerCase().replace('jpeg', 'jpg');
+            return {
+              type: 'image',
+              caption: elem.caption || '',
+              width: elem.width || '8cm',
+              imageType: fmt,
+              image_id: elem.imageId,
+            };
+          } else if (elem.type === 'table') {
+            const cols = parseInt(elem.columnsCount, 10) || (elem.gridData && elem.gridData[0] ? elem.gridData[0].length : 2);
+            const rows = parseInt(elem.rowsCount, 10) || (elem.gridData ? elem.gridData.length : 2);
+            return {
+              type: 'table',
+              caption: elem.caption || '',
+              columnsCount: cols,
+              rowsCount: rows,
+              gridData: Array.isArray(elem.gridData) ? elem.gridData : [],
+            };
+          } else if (elem.type === 'equation') {
+            return {
+              type: 'equation',
+              caption: elem.caption || '',
+              equation: elem.equation || '',
+            };
+          }
+          return elem;
+        });
+
+        return {
+          title: sec.title || '',
+          context: sec.context || '',
+          elements: cleanElements,
+        };
+      });
+
+      await postJson('/sections/', { sections: cleanSections });
+    }
+
+    // Expose on window for debugging & tests
+    window.saveAllToBackend = saveAllToBackend;
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // Render Equation Math using KaTeX (if available) or formatted HTML fallback
+    function renderEquationMath(rawEq) {
+      if (!rawEq || !rawEq.trim()) {
+        return '<span class="equation-preview-empty">No equation entered. Type a formula above (supports standard math &amp; LaTeX notation).</span>';
+      }
+      const trimmed = rawEq.trim();
+
+      if (typeof katex !== 'undefined' && katex.renderToString) {
+        try {
+          return katex.renderToString(trimmed, { throwOnError: false, displayMode: true });
+        } catch (e) {
+          // fallback to manual formatting
+        }
+      }
+
+      // Fallback mathematical rendering
+      let formatted = escapeHtml(trimmed);
+
+      formatted = formatted
+        .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '<span class="math-fraction"><span class="math-num">$1</span><span class="math-denom">$2</span></span>')
+        .replace(/\\sqrt\{([^}]+)\}/g, '<span class="math-sqrt">&radic;<span class="math-radicand">$1</span></span>')
+        .replace(/\\sqrt\(([^)]+)\)/g, '<span class="math-sqrt">&radic;<span class="math-radicand">$1</span></span>')
+        .replace(/\\left\(/g, '(')
+        .replace(/\\right\)/g, ')')
+        .replace(/\\alpha/g, '&alpha;')
+        .replace(/\\beta/g, '&beta;')
+        .replace(/\\gamma/g, '&gamma;')
+        .replace(/\\delta/g, '&delta;')
+        .replace(/\\epsilon/g, '&epsilon;')
+        .replace(/\\theta/g, '&theta;')
+        .replace(/\\lambda/g, '&lambda;')
+        .replace(/\\mu/g, '&mu;')
+        .replace(/\\pi/g, '&pi;')
+        .replace(/\\sigma/g, '&sigma;')
+        .replace(/\\tau/g, '&tau;')
+        .replace(/\\omega/g, '&omega;')
+        .replace(/\\sum/g, '&sum;')
+        .replace(/\\int/g, '&int;')
+        .replace(/\\prod/g, '&prod;')
+        .replace(/\\pm/g, '&plusmn;')
+        .replace(/\\infty/g, '&infin;')
+        .replace(/\\approx/g, '&asymp;')
+        .replace(/\\neq/g, '&ne;')
+        .replace(/\\le(q)?/g, '&le;')
+        .replace(/\\ge(q)?/g, '&ge;')
+        .replace(/\\times/g, '&times;')
+        .replace(/\\cdot/g, '&middot;')
+        .replace(/\^2/g, '&sup2;')
+        .replace(/\^3/g, '&sup3;')
+        .replace(/\^\{([^}]+)\}/g, '<sup>$1</sup>')
+        .replace(/\_\{([^}]+)\}/g, '<sub>$1</sub>')
+        .replace(/\^([a-zA-Z0-9])/g, '<sup>$1</sup>')
+        .replace(/\_([a-zA-Z0-9])/g, '<sub>$1</sub>');
+
+      return `<div class="math-fallback-rendered">${formatted}</div>`;
+    }
+
+    function getFormattedAuthors() {
+      return (reportStructure.authors || []).map(a => {
+        const obj = typeof a === 'string' ? { name: a, affiliation: '' } : a;
+        const name = (obj.name || '').trim();
+        const aff = (obj.affiliation || '').trim();
+        if (name && aff) return `${name} (${aff})`;
+        return name || aff;
+      }).filter(Boolean);
+    }
+
+    // Dynamic Authors Management with Affiliated Field & + Sign
+    function renderAuthors() {
+      if (!authorsList) return;
+      authorsList.innerHTML = '';
+      if (!reportStructure.authors || reportStructure.authors.length === 0) {
+        reportStructure.authors = [{ name: '', affiliation: '' }];
+      }
+
+      reportStructure.authors.forEach((author, index) => {
+        const obj = (typeof author === 'string') ? { name: author, affiliation: '' } : author;
+        const item = document.createElement('div');
+        item.className = 'author-item';
+        item.innerHTML = `
+          <div class="author-fields">
+            <input type="text" class="text-input author-input-field author-name-input" placeholder="Author ${index + 1} Name (e.g. Dr. Alex Morgan)" value="${escapeHtml(obj.name || '')}" data-author-idx="${index}" data-prop="name">
+            <input type="text" class="text-input author-affiliation-input" placeholder="Affiliated (e.g. Stanford University / Org)" value="${escapeHtml(obj.affiliation || '')}" data-author-idx="${index}" data-prop="affiliation">
+          </div>
+          ${reportStructure.authors.length > 1 ? `
+            <button type="button" class="btn-remove-author" data-remove-author="${index}" title="Remove author">&times;</button>
+          ` : ''}
+        `;
+        authorsList.appendChild(item);
+      });
+    }
+
+    if (btnAddAuthor) {
+      btnAddAuthor.addEventListener('click', () => {
+        reportStructure.authors.push({ name: '', affiliation: '' });
+        renderAuthors();
+        const inputs = authorsList.querySelectorAll('.author-name-input');
+        if (inputs.length) inputs[inputs.length - 1].focus();
+      });
+    }
+
+    if (authorsList) {
+      authorsList.addEventListener('input', (e) => {
+        const input = e.target.closest('[data-author-idx]');
+        if (!input) return;
+        const idx = parseInt(input.dataset.authorIdx, 10);
+        const prop = input.dataset.prop;
+        if (reportStructure.authors[idx] && prop) {
+          if (typeof reportStructure.authors[idx] === 'string') {
+            reportStructure.authors[idx] = { name: reportStructure.authors[idx], affiliation: '' };
+          }
+          reportStructure.authors[idx][prop] = input.value;
+        }
+      });
+
+      authorsList.addEventListener('click', (e) => {
+        const removeBtn = e.target.closest('[data-remove-author]');
+        if (removeBtn) {
+          const idx = parseInt(removeBtn.dataset.removeAuthor, 10);
+          reportStructure.authors.splice(idx, 1);
+          renderAuthors();
+        }
+      });
+    }
+
+    function renderSections() {
+      if (!sectionsContainer) return;
+      sectionsContainer.innerHTML = '';
+
+      if (reportStructure.sections.length === 0) {
+        sectionsContainer.innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-secondary); font-size: 13px; border: 1px dashed rgba(0,0,0,0.12); border-radius: 8px;">No sections added yet. Click "+ Add Section" below to build your report structure.</div>';
+        return;
+      }
+
+      reportStructure.sections.forEach((sec, secIndex) => {
+        const secCard = document.createElement('div');
+        secCard.className = 'section-card';
+        secCard.dataset.secId = sec.id;
+
+        // Section Header
+        const header = document.createElement('div');
+        header.className = 'section-card-header';
+        header.innerHTML = `
+          <input type="text" class="text-input" placeholder="Section ${secIndex + 1} Title (e.g. Market Overview)" value="${escapeHtml(sec.title)}" data-action="update-sec-title">
+          <button type="button" class="btn-remove-section" title="Remove Section" data-action="remove-sec">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        `;
+
+        // Section Context (single context per section, placed above sub-elements)
+        const contextField = document.createElement('textarea');
+        contextField.className = 'text-input section-context-input';
+        contextField.placeholder = `Section ${secIndex + 1} Context (e.g. Scope, strategic background, and core focus for this section...)`;
+        contextField.dataset.action = 'update-sec-context';
+        contextField.rows = 2;
+        contextField.value = sec.context || '';
+
+        // Sub-elements Container
+        const elemWrapper = document.createElement('div');
+        elemWrapper.className = 'section-elements';
+
+        sec.elements.forEach((elem, elemIndex) => {
+          const elemCard = document.createElement('div');
+          elemCard.className = 'element-card';
+          elemCard.dataset.elemIdx = elemIndex;
+
+          if (elem.type === 'subsection') {
+            elemCard.innerHTML = `
+              <div class="element-header">
+                <span class="element-badge badge-subsection">Subsection</span>
+                <button type="button" class="btn-remove-element" title="Remove Subsection" data-action="remove-elem">&times;</button>
+              </div>
+              <input type="text" class="element-input" placeholder="Subsection Title (e.g. 1.1 Methodology)" value="${escapeHtml(elem.title)}" data-action="update-elem-title">
+              <textarea class="element-input element-textarea" placeholder="Subsection Content / Analysis Prompt..." data-action="update-elem-content">${escapeHtml(elem.content || '')}</textarea>
+            `;
+          } else if (elem.type === 'image') {
+            const imgType = (elem.imageType || 'png').toLowerCase();
+            const acceptAttr = imgType === 'jpg' ? '.jpg,.jpeg,image/jpeg' : '.png,image/png';
+            const hasImage = Boolean(elem.previewData || elem.url);
+
+            elemCard.innerHTML = `
+              <div class="element-header">
+                <span class="element-badge badge-image">Image</span>
+                <button type="button" class="btn-remove-element" title="Remove Image" data-action="remove-elem">&times;</button>
+              </div>
+
+              <!-- Figure Caption Input -->
+              <input type="text" class="element-input" placeholder="Figure / Image Caption (e.g. Figure 1: Global Performance Distribution)" value="${escapeHtml(elem.caption)}" data-action="update-elem-caption">
+
+              <!-- Image Width Field -->
+              <div class="image-width-row" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">Image Width:</label>
+                <input type="text" class="element-input" style="max-width: 140px; padding: 6px 10px; font-size: 13px;" placeholder="e.g. 8cm" value="${escapeHtml(elem.width || '8cm')}" data-action="update-elem-width">
+                <span style="font-size: 11.5px; color: var(--text-secondary);">(default: 8cm, supports e.g. 8cm, 0.9\\columnwidth)</span>
+              </div>
+
+              <!-- Ask for Image Type: JPG or PNG before Drop Box -->
+              <div class="image-type-row">
+                <span class="image-type-label">Format:</span>
+                <div class="image-type-pills">
+                  <button type="button" class="image-type-btn ${imgType === 'jpg' ? 'active' : ''}" data-action="set-img-type" data-type="jpg">
+                    JPG (.jpg)
+                  </button>
+                  <button type="button" class="image-type-btn ${imgType === 'png' ? 'active' : ''}" data-action="set-img-type" data-type="png">
+                    PNG (.png)
+                  </button>
+                </div>
+                <span style="font-size: 11.5px; color: var(--text-secondary); margin-left: auto;">
+                  Type: <strong style="color: var(--gold-accent); text-transform: uppercase;">.${imgType}</strong>
+                </span>
+              </div>
+
+              <!-- Drop Box for the Image -->
+              <div class="image-drop-box" data-action="trigger-file-upload">
+                <input type="file" class="image-file-input" accept="${acceptAttr}" style="display: none;">
+                ${hasImage ? `
+                  <div class="image-preview-wrapper">
+                    <img src="${escapeHtml(elem.previewData || elem.url)}" alt="Preview" class="image-preview-thumb">
+                    <div class="image-preview-info">
+                      <div class="image-preview-name">${escapeHtml(elem.fileName || elem.url || 'Uploaded Image')}</div>
+                      <div class="image-preview-meta">Format: <span class="image-drop-badge">${imgType}</span> &bull; Click to change file</div>
+                    </div>
+                    <div style="display: flex; gap: 6px; flex-shrink: 0;">
+                      <button type="button" class="btn-change-image" data-action="clear-image" style="color: #e0443e; border-color: rgba(224, 68, 62, 0.3);">Remove</button>
+                      <button type="button" class="btn-change-image" data-action="trigger-file-upload">Change</button>
+                    </div>
+                  </div>
+                ` : `
+                  <div class="image-drop-icon">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                  </div>
+                  <div class="image-drop-text">
+                    <strong>Click to browse</strong> or drag & drop your <span class="image-drop-badge">${imgType}</span> image here
+                  </div>
+                  <div class="image-drop-hint">
+                    Requires .${imgType} file format (up to 10MB)
+                  </div>
+                `}
+              </div>
+            `;
+          } else if (elem.type === 'table') {
+            const cols = elem.columnsCount || 4;
+            const rows = elem.rowsCount || 3;
+            const hasData = Boolean(elem.gridData && elem.gridData.length > 0 && elem.gridData.some(r => r.some(c => c && c.trim() !== '')));
+
+            elemCard.innerHTML = `
+              <div class="element-header">
+                <span class="element-badge badge-table">Table</span>
+                <button type="button" class="btn-remove-element" title="Remove Table" data-action="remove-elem">&times;</button>
+              </div>
+
+              <!-- Table Name / Caption Input -->
+              <input type="text" class="element-input" placeholder="Table Name / Caption (e.g. Table 1: Financial Breakdown)" value="${escapeHtml(elem.caption || '')}" data-action="update-elem-caption">
+
+              <!-- Ask for Columns and Rows (including heading row) -->
+              <div class="table-config-row">
+                <div class="table-field-group">
+                  <label class="table-field-label">Columns:</label>
+                  <input type="number" class="element-input table-num-input" min="1" max="15" value="${cols}" data-action="update-table-cols" title="Number of columns">
+                </div>
+                <div class="table-field-group">
+                  <label class="table-field-label">Rows (inc. heading):</label>
+                  <input type="number" class="element-input table-num-input" min="1" max="50" value="${rows}" data-action="update-table-rows-count" title="Number of rows including header row">
+                </div>
+                <button type="button" class="btn-add-table-data" data-action="open-table-modal" style="margin-left: auto;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+                  <span>${hasData ? 'Edit Data' : 'Add Data'}</span>
+                </button>
+              </div>
+
+              <!-- Table Data Preview or Prompt -->
+              ${hasData ? `
+                <div class="table-card-preview">
+                  <div class="table-preview-scroll">
+                    <table class="card-preview-table">
+                      <thead>
+                        <tr>
+                          ${(elem.gridData[0] || []).slice(0, cols).map((h, i) => `<th>${escapeHtml(h || `Heading ${i + 1}`)}</th>`).join('')}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${(elem.gridData.slice(1, rows) || []).map(row => `
+                          <tr>
+                            ${row.slice(0, cols).map(cell => `<td>${escapeHtml(cell || '-')}</td>`).join('')}
+                          </tr>
+                        `).join('')}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div class="table-preview-footer">
+                    <span>${cols} Columns &bull; ${rows} Rows configured</span>
+                    <button type="button" class="table-quick-edit-link" data-action="open-table-modal">Open Grid Window &rarr;</button>
+                  </div>
+                </div>
+              ` : `
+                <div class="table-card-empty-prompt" data-action="open-table-modal">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold-accent)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+                  <span>${cols} Columns &times; ${rows} Rows defined. Click <strong>Add Data</strong> to open grid window.</span>
+                </div>
+              `}
+            `;
+          } else if (elem.type === 'equation') {
+            const hasEq = Boolean((elem.equation || '').trim());
+            elemCard.innerHTML = `
+              <div class="element-header">
+                <span class="element-badge badge-equation">Equation</span>
+                <button type="button" class="btn-remove-element" title="Remove Equation" data-action="remove-elem">&times;</button>
+              </div>
+
+              <!-- Equation Name / Label Input -->
+              <input type="text" class="element-input" placeholder="Equation Name / Label (e.g. Equation 1: Capital Asset Pricing Model)" value="${escapeHtml(elem.caption || '')}" data-action="update-elem-caption">
+
+              <!-- Equation Formula Input & Actions -->
+              <div class="equation-input-wrap">
+                <div class="equation-label-row">
+                  <label class="equation-label">Equation Formula / LaTeX:</label>
+                  <button type="button" class="equation-modal-trigger-link" data-action="open-eq-modal">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    <span>Open Formula Window</span>
+                  </button>
+                </div>
+                <textarea class="element-input equation-formula-input" rows="2" placeholder="Enter equation (e.g. E = mc^2  or  \\frac{a}{b})" data-action="update-elem-equation">${escapeHtml(elem.equation || '')}</textarea>
+
+                <!-- Quick Math Symbol Chips -->
+                <div class="equation-symbols-bar">
+                  <span class="symbols-hint">Quick Insert:</span>
+                  <button type="button" class="symbol-chip" data-action="insert-symbol" data-symbol="^2" title="Superscript 2">x²</button>
+                  <button type="button" class="symbol-chip" data-action="insert-symbol" data-symbol="\\sqrt{x}" title="Square root">√x</button>
+                  <button type="button" class="symbol-chip" data-action="insert-symbol" data-symbol="\\frac{a}{b}" title="Fraction">\frac{a}{b}</button>
+                  <button type="button" class="symbol-chip" data-action="insert-symbol" data-symbol="\\sum_{i=1}^n" title="Summation">∑</button>
+                  <button type="button" class="symbol-chip" data-action="insert-symbol" data-symbol="\\int_a^b" title="Integral">∫</button>
+                  <button type="button" class="symbol-chip" data-action="insert-symbol" data-symbol="\\alpha" title="Alpha">α</button>
+                  <button type="button" class="symbol-chip" data-action="insert-symbol" data-symbol="\\beta" title="Beta">β</button>
+                  <button type="button" class="symbol-chip" data-action="insert-symbol" data-symbol="\\pi" title="Pi">π</button>
+                  <button type="button" class="symbol-chip" data-action="insert-symbol" data-symbol="\\pm" title="Plus-minus">±</button>
+                  <button type="button" class="symbol-chip" data-action="insert-symbol" data-symbol="\\infty" title="Infinity">∞</button>
+                </div>
+              </div>
+
+              <!-- Equation Preview Box -->
+              <div class="equation-preview-card">
+                <div class="equation-preview-header">
+                  <span>Formatted Equation Preview</span>
+                  ${hasEq ? '<span style="color: var(--gold-accent); font-weight: 500;">✓ Active</span>' : ''}
+                </div>
+                <div class="equation-preview-display">
+                  ${renderEquationMath(elem.equation)}
+                </div>
+              </div>
+            `;
+          }
+          elemWrapper.appendChild(elemCard);
+        });
+
+        // Sub-elements Action Buttons
+        const actions = document.createElement('div');
+        actions.className = 'section-actions';
+        actions.innerHTML = `
+          <button type="button" class="btn-sub-action" data-action="add-subsection">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Subsection</span>
+          </button>
+          <button type="button" class="btn-sub-action" data-action="add-image">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <span>Image</span>
+          </button>
+          <button type="button" class="btn-sub-action" data-action="add-table">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+            <span>Table</span>
+          </button>
+          <button type="button" class="btn-sub-action" data-action="add-equation">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16l-8.5 8 8.5 8H4"/></svg>
+            <span>Equation</span>
+          </button>
+        `;
+
+        secCard.appendChild(header);
+        secCard.appendChild(contextField);
+        secCard.appendChild(elemWrapper);
+        secCard.appendChild(actions);
+        sectionsContainer.appendChild(secCard);
+      });
+    }
+
+    function syncAbstractInputs() {
+      if (reportAbstract) reportAbstract.value = reportStructure.abstract || '';
+      if (reportKeywords) reportKeywords.value = reportStructure.keywords || '';
+      updateAbstractWordCount();
+      renderKeywordTags();
+      updateAbstractDashboardBadge();
+    }
+
+    function updateAbstractWordCount() {
+      if (!abstractWordCount || !reportAbstract) return;
+      const text = (reportAbstract.value || '').trim();
+      const count = text ? text.split(/\s+/).filter(Boolean).length : 0;
+      abstractWordCount.textContent = `${count} word${count === 1 ? '' : 's'}`;
+    }
+
+    function renderKeywordTags() {
+      if (!keywordsTagList || !reportKeywords) return;
+      keywordsTagList.innerHTML = '';
+      const raw = reportKeywords.value || '';
+      const tags = raw.split(',').map(s => s.trim()).filter(Boolean);
+      tags.forEach(tag => {
+        const pill = document.createElement('span');
+        pill.className = 'keyword-pill-tag';
+        pill.textContent = tag;
+        keywordsTagList.appendChild(pill);
+      });
+    }
+
+    function updateAbstractDashboardBadge() {
+      if (!abstractStatusBadge) return;
+      const hasAbstract = Boolean((reportStructure.abstract || '').trim());
+      const hasKeywords = Boolean((reportStructure.keywords || '').trim());
+      if (hasAbstract || hasKeywords) {
+        abstractStatusBadge.style.display = 'inline-flex';
+        abstractStatusBadge.textContent = '✓ Defined';
+      } else {
+        abstractStatusBadge.style.display = 'none';
+      }
+    }
+
+    function syncContextInputs() {
+      if (reportTitleInput) reportTitleInput.value = reportStructure.title || '';
+      renderAuthors();
+      renderSections();
+    }
+
+    function updateGenerateSummary() {
+      const summaryTitle = document.getElementById('summaryTitleText');
+      const summaryAuthor = document.getElementById('summaryAuthorText');
+      const summarySections = document.getElementById('summarySectionsText');
+      const summaryReferences = document.getElementById('summaryReferencesText');
+      const summaryAbstract = document.getElementById('summaryAbstractText');
+      const summaryKeywords = document.getElementById('summaryKeywordsText');
+
+      if (summaryTitle) summaryTitle.textContent = `Title: ${reportStructure.title || 'Untitled'}`;
+      if (summaryAuthor) {
+        const authorTexts = getFormattedAuthors();
+        summaryAuthor.textContent = `Author(s): ${authorTexts.length ? authorTexts.join(', ') : 'Anonymous'}`;
+      }
+      if (summaryReferences) {
+        const refCount = (reportStructure.references || []).length;
+        summaryReferences.textContent = `References: ${refCount} Reference${refCount === 1 ? '' : 's'} Configured`;
+      }
+      if (summaryAbstract) {
+        const abs = (reportStructure.abstract || '').trim();
+        const words = abs ? abs.split(/\s+/).filter(Boolean).length : 0;
+        summaryAbstract.textContent = abs ? `Abstract: Configured (${words} words)` : 'Abstract: None defined';
+      }
+      if (summaryKeywords) {
+        const kw = (reportStructure.keywords || '').trim();
+        summaryKeywords.textContent = kw ? `Keywords: ${kw}` : 'Keywords: None defined';
+      }
+      if (summarySections) {
+        let elemCount = 0;
+        reportStructure.sections.forEach(s => elemCount += s.elements.length);
+        summarySections.textContent = `Configured: ${reportStructure.sections.length} Section${reportStructure.sections.length > 1 ? 's' : ''} (${elemCount} Items)`;
+      }
+    }
+
+    // Event Delegation on sectionsContainer
+    if (sectionsContainer) {
+      // Input changes
+      sectionsContainer.addEventListener('input', (e) => {
+        const secCard = e.target.closest('.section-card');
+        if (!secCard) return;
+        const secId = secCard.dataset.secId;
+        const section = reportStructure.sections.find(s => s.id === secId);
+        if (!section) return;
+
+        const action = e.target.dataset.action;
+        if (action === 'update-sec-title') {
+          section.title = e.target.value;
+        } else if (action === 'update-sec-context') {
+          section.context = e.target.value;
+        }
+
+        const elemCard = e.target.closest('.element-card');
+        if (elemCard) {
+          const elemIdx = parseInt(elemCard.dataset.elemIdx, 10);
+          const elem = section.elements[elemIdx];
+          if (!elem) return;
+          if (action === 'update-elem-title') elem.title = e.target.value;
+          if (action === 'update-elem-content') elem.content = e.target.value;
+          if (action === 'update-elem-caption') elem.caption = e.target.value;
+          if (action === 'update-elem-width') elem.width = e.target.value;
+          if (action === 'update-elem-url') elem.url = e.target.value;
+          if (action === 'update-elem-rows') elem.rows = e.target.value;
+          if (action === 'update-elem-equation') {
+            elem.equation = e.target.value;
+            const previewDisplay = elemCard.querySelector('.equation-preview-display');
+            if (previewDisplay) previewDisplay.innerHTML = renderEquationMath(elem.equation);
+          }
+          if (action === 'update-table-cols') {
+            const val = parseInt(e.target.value, 10);
+            if (val && val > 0) elem.columnsCount = Math.min(Math.max(val, 1), 15);
+          }
+          if (action === 'update-table-rows-count') {
+            const val = parseInt(e.target.value, 10);
+            if (val && val > 0) elem.rowsCount = Math.min(Math.max(val, 1), 50);
+          }
+        }
+      });
+
+      // Helper function to process and validate image files
+      function processImageFile(file, elem) {
+        const ext = file.name.split('.').pop().toLowerCase();
+        const reqType = (elem.imageType || 'png').toLowerCase();
+
+        const isJpg = (ext === 'jpg' || ext === 'jpeg' || file.type === 'image/jpeg');
+        const isPng = (ext === 'png' || file.type === 'image/png');
+
+        if (reqType === 'jpg' && !isJpg) {
+          showToast(`⚠ Format mismatch: Image type is set to JPG. Please upload a .jpg or .jpeg file.`);
+          return;
+        }
+        if (reqType === 'png' && !isPng) {
+          showToast(`⚠ Format mismatch: Image type is set to PNG. Please upload a .png file.`);
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          elem.previewData = ev.target.result;
+          elem.fileName = file.name;
+          elem.url = file.name;
+          elem.imageId = null;
+          renderSections();
+          showToast(`✓ Uploaded ${file.name} (${reqType.toUpperCase()})`);
+        };
+        reader.readAsDataURL(file);
+      }
+
+      // Button clicks & drop box triggers inside sections
+      sectionsContainer.addEventListener('click', (e) => {
+        // Trigger file input when clicking image drop box
+        const dropBox = e.target.closest('.image-drop-box');
+        if (dropBox && !e.target.closest('[data-action="clear-image"]') && !e.target.closest('[data-action="set-img-type"]')) {
+          const fileInput = dropBox.querySelector('.image-file-input');
+          if (fileInput && e.target !== fileInput) {
+            fileInput.click();
+            return;
+          }
+        }
+
+        // Open Table Data Modal Window
+        const openTableBtn = e.target.closest('[data-action="open-table-modal"]');
+        if (openTableBtn) {
+          const elemCard = openTableBtn.closest('.element-card');
+          const secCard = openTableBtn.closest('.section-card');
+          if (elemCard && secCard) {
+            const sec = reportStructure.sections.find(s => s.id === secCard.dataset.secId);
+            if (sec) {
+              const elemIdx = parseInt(elemCard.dataset.elemIdx, 10);
+              const elem = sec.elements[elemIdx];
+              if (elem) {
+                activeTableEdit = { secId: sec.id, elemIdx };
+                openTableDataModal(elem);
+                return;
+              }
+            }
+          }
+        }
+
+        // Open Equation Modal Window
+        const openEqBtn = e.target.closest('[data-action="open-eq-modal"]');
+        if (openEqBtn) {
+          const elemCard = openEqBtn.closest('.element-card');
+          const secCard = openEqBtn.closest('.section-card');
+          if (elemCard && secCard) {
+            const sec = reportStructure.sections.find(s => s.id === secCard.dataset.secId);
+            if (sec) {
+              const elemIdx = parseInt(elemCard.dataset.elemIdx, 10);
+              const elem = sec.elements[elemIdx];
+              if (elem) {
+                activeEquationEdit = { secId: sec.id, elemIdx };
+                openEquationModal(elem);
+                return;
+              }
+            }
+          }
+        }
+
+        // Inline symbol chip insert
+        const symChip = e.target.closest('[data-action="insert-symbol"]');
+        if (symChip) {
+          const elemCard = symChip.closest('.element-card');
+          const secCard = symChip.closest('.section-card');
+          if (elemCard && secCard) {
+            const sec = reportStructure.sections.find(s => s.id === secCard.dataset.secId);
+            if (sec) {
+              const elemIdx = parseInt(elemCard.dataset.elemIdx, 10);
+              const elem = sec.elements[elemIdx];
+              const textarea = elemCard.querySelector('.equation-formula-input');
+              if (elem && textarea) {
+                const sym = symChip.dataset.symbol;
+                const start = textarea.selectionStart || textarea.value.length;
+                const end = textarea.selectionEnd || textarea.value.length;
+                textarea.value = textarea.value.substring(0, start) + sym + textarea.value.substring(end);
+                elem.equation = textarea.value;
+                const previewDisplay = elemCard.querySelector('.equation-preview-display');
+                if (previewDisplay) previewDisplay.innerHTML = renderEquationMath(elem.equation);
+                textarea.focus();
+                textarea.setSelectionRange(start + sym.length, start + sym.length);
+                return;
+              }
+            }
+          }
+        }
+
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const secCard = btn.closest('.section-card');
+        if (!secCard) return;
+        const secId = secCard.dataset.secId;
+        const section = reportStructure.sections.find(s => s.id === secId);
+        if (!section) return;
+
+        const action = btn.dataset.action;
+
+        if (action === 'remove-sec') {
+          reportStructure.sections = reportStructure.sections.filter(s => s.id !== secId);
+          renderSections();
+        } else if (action === 'add-subsection') {
+          section.elements.push({
+            id: 'sub_' + Date.now(),
+            type: 'subsection',
+            title: `Subsection ${section.elements.length + 1}`,
+            content: ''
+          });
+          renderSections();
+        } else if (action === 'add-image') {
+          section.elements.push({
+            id: 'img_' + Date.now(),
+            type: 'image',
+            caption: `Figure ${section.elements.length + 1}: Data Chart`,
+            width: '8cm',
+            imageType: 'png',
+            fileName: '',
+            previewData: '',
+            url: '',
+            imageId: null
+          });
+          renderSections();
+        } else if (action === 'add-table') {
+          section.elements.push({
+            id: 'tbl_' + Date.now(),
+            type: 'table',
+            caption: `Table ${section.elements.length + 1}: Data Summary`,
+            columnsCount: 3,
+            rowsCount: 3,
+            gridData: [
+              ['Column 1', 'Column 2', 'Column 3'],
+              ['', '', ''],
+              ['', '', '']
+            ],
+            rows: 'Column 1, Column 2, Column 3\n, ,\n, ,'
+          });
+          renderSections();
+        } else if (action === 'add-equation') {
+          const newEq = {
+            id: 'eq_' + Date.now(),
+            type: 'equation',
+            caption: `Equation ${section.elements.filter(e => e.type === 'equation').length + 1}: Formula`,
+            equation: ''
+          };
+          section.elements.push(newEq);
+          const newElemIdx = section.elements.length - 1;
+          renderSections();
+          activeEquationEdit = { secId: section.id, elemIdx: newElemIdx };
+          openEquationModal(newEq);
+        } else if (action === 'remove-elem') {
+          const elemCard = btn.closest('.element-card');
+          if (elemCard) {
+            const elemIdx = parseInt(elemCard.dataset.elemIdx, 10);
+            section.elements.splice(elemIdx, 1);
+            renderSections();
+          }
+        } else if (action === 'set-img-type') {
+          const elemCard = btn.closest('.element-card');
+          if (elemCard) {
+            const elemIdx = parseInt(elemCard.dataset.elemIdx, 10);
+            const elem = section.elements[elemIdx];
+            if (elem) {
+              elem.imageType = btn.dataset.type;
+              elem.imageId = null;
+              renderSections();
+              showToast(`Format set to ${btn.dataset.type.toUpperCase()}`);
+            }
+          }
+        } else if (action === 'clear-image') {
+          const elemCard = btn.closest('.element-card');
+          if (elemCard) {
+            const elemIdx = parseInt(elemCard.dataset.elemIdx, 10);
+            const elem = section.elements[elemIdx];
+            if (elem) {
+              elem.previewData = '';
+              elem.fileName = '';
+              elem.url = '';
+              elem.imageId = null;
+              renderSections();
+            }
+          }
+        }
+      });
+
+      // Change event for image file inputs and table dimension inputs
+      sectionsContainer.addEventListener('change', (e) => {
+        if (e.target.classList.contains('image-file-input')) {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          const elemCard = e.target.closest('.element-card');
+          const secCard = e.target.closest('.section-card');
+          if (!elemCard || !secCard) return;
+          const sec = reportStructure.sections.find(s => s.id === secCard.dataset.secId);
+          if (!sec) return;
+          const elem = sec.elements[parseInt(elemCard.dataset.elemIdx, 10)];
+          if (!elem) return;
+          processImageFile(file, elem);
+        } else if (e.target.dataset.action === 'update-table-cols' || e.target.dataset.action === 'update-table-rows-count') {
+          renderSections();
+        }
+      });
+
+      // Drag and drop events on image drop box
+      sectionsContainer.addEventListener('dragover', (e) => {
+        const dropBox = e.target.closest('.image-drop-box');
+        if (dropBox) {
+          e.preventDefault();
+          dropBox.classList.add('drag-over');
+        }
+      });
+
+      sectionsContainer.addEventListener('dragleave', (e) => {
+        const dropBox = e.target.closest('.image-drop-box');
+        if (dropBox) {
+          dropBox.classList.remove('drag-over');
+        }
+      });
+
+      sectionsContainer.addEventListener('drop', (e) => {
+        const dropBox = e.target.closest('.image-drop-box');
+        if (dropBox) {
+          e.preventDefault();
+          dropBox.classList.remove('drag-over');
+          const file = e.dataTransfer.files && e.dataTransfer.files[0];
+          if (!file) return;
+          const elemCard = dropBox.closest('.element-card');
+          const secCard = dropBox.closest('.section-card');
+          if (!elemCard || !secCard) return;
+          const sec = reportStructure.sections.find(s => s.id === secCard.dataset.secId);
+          if (!sec) return;
+          const elem = sec.elements[parseInt(elemCard.dataset.elemIdx, 10)];
+          if (!elem) return;
+          processImageFile(file, elem);
+        }
+      });
+    }
+
+    // Open Table Data Modal Editor
+    function openTableDataModal(elem) {
+      if (!modalTableData) return;
+      tableModalTitle.textContent = elem.caption || 'Table Data Editor';
+      const cols = parseInt(elem.columnsCount, 10) || 4;
+      const rows = parseInt(elem.rowsCount, 10) || 3;
+
+      tableModalBadge.textContent = `${cols} Cols × ${rows} Rows`;
+
+      // If elem.gridData isn't populated, initialize from rows or empty
+      if (!elem.gridData || elem.gridData.length === 0) {
+        if (elem.rows) {
+          elem.gridData = elem.rows.split('\n').filter(r => r.trim()).map(r => r.split(',').map(c => c.trim()));
+        } else {
+          elem.gridData = [];
+        }
+      }
+
+      // Ensure matrix matches current dimensions
+      while (elem.gridData.length < rows) {
+        elem.gridData.push([]);
+      }
+      for (let r = 0; r < rows; r++) {
+        while (elem.gridData[r].length < cols) {
+          elem.gridData[r].push('');
+        }
+      }
+
+      let html = '<thead><tr><th class="table-row-num">#</th>';
+      for (let c = 0; c < cols; c++) {
+        const hVal = (elem.gridData[0] && elem.gridData[0][c]) || '';
+        html += `<th><input type="text" class="table-cell-input table-header-cell" placeholder="Heading ${c + 1}" value="${escapeHtml(hVal)}" data-row="0" data-col="${c}"></th>`;
+      }
+      html += '</tr></thead><tbody>';
+
+      for (let r = 1; r < rows; r++) {
+        html += `<tr><td class="table-row-num">${r}</td>`;
+        for (let c = 0; c < cols; c++) {
+          const cellVal = (elem.gridData[r] && elem.gridData[r][c]) || '';
+          html += `<td><input type="text" class="table-cell-input" placeholder="Row ${r}, Col ${c + 1}" value="${escapeHtml(cellVal)}" data-row="${r}" data-col="${c}"></td>`;
+        }
+        html += '</tr>';
+      }
+      html += '</tbody>';
+      tableModalGrid.innerHTML = html;
+
+      modalTableData.showModal();
+
+      const firstInput = tableModalGrid.querySelector('input');
+      if (firstInput) setTimeout(() => firstInput.focus(), 60);
+    }
+
+    // Save Table Data Modal Click
+    if (btnSaveTableData) {
+      btnSaveTableData.addEventListener('click', () => {
+        if (!activeTableEdit) return;
+        const sec = reportStructure.sections.find(s => s.id === activeTableEdit.secId);
+        if (!sec) return;
+        const elem = sec.elements[activeTableEdit.elemIdx];
+        if (!elem) return;
+
+        const cols = parseInt(elem.columnsCount, 10) || 4;
+        const rows = parseInt(elem.rowsCount, 10) || 3;
+        const matrix = [];
+
+        for (let r = 0; r < rows; r++) {
+          const rowArr = [];
+          for (let c = 0; c < cols; c++) {
+            const input = tableModalGrid.querySelector(`input[data-row="${r}"][data-col="${c}"]`);
+            rowArr.push(input ? input.value.trim() : '');
+          }
+          matrix.push(rowArr);
+        }
+
+        elem.gridData = matrix;
+        elem.rows = matrix.map(r => r.join(', ')).join('\n');
+        modalTableData.close();
+        renderSections();
+        showToast(`✓ Saved data for "${elem.caption || 'Table'}" (${cols} Cols × ${rows} Rows)`);
+      });
+    }
+
+    // Equation Modal Logic
+    function openEquationModal(elem) {
+      if (!modalEquationEditor) return;
+      if (modalEqCaption) modalEqCaption.value = elem.caption || '';
+      if (modalEqFormula) modalEqFormula.value = elem.equation || '';
+      updateModalEqPreview();
+      modalEquationEditor.showModal();
+      setTimeout(() => {
+        if (modalEqFormula) modalEqFormula.focus();
+      }, 60);
+    }
+
+    function updateModalEqPreview() {
+      if (!modalEqPreviewDisplay) return;
+      const val = modalEqFormula ? modalEqFormula.value : '';
+      modalEqPreviewDisplay.innerHTML = renderEquationMath(val);
+    }
+
+    if (modalEqFormula) {
+      modalEqFormula.addEventListener('input', updateModalEqPreview);
+    }
+
+    const modalEqSymbolsBar = document.getElementById('modalEqSymbolsBar');
+    if (modalEqSymbolsBar) {
+      modalEqSymbolsBar.addEventListener('click', (e) => {
+        const chip = e.target.closest('[data-modal-insert]');
+        if (!chip || !modalEqFormula) return;
+        const sym = chip.dataset.modalInsert;
+        const start = modalEqFormula.selectionStart || modalEqFormula.value.length;
+        const end = modalEqFormula.selectionEnd || modalEqFormula.value.length;
+        modalEqFormula.value = modalEqFormula.value.substring(0, start) + sym + modalEqFormula.value.substring(end);
+        modalEqFormula.focus();
+        modalEqFormula.setSelectionRange(start + sym.length, start + sym.length);
+        updateModalEqPreview();
+      });
+    }
+
+    if (btnSaveEquationModal) {
+      btnSaveEquationModal.addEventListener('click', () => {
+        if (activeEquationEdit) {
+          const sec = reportStructure.sections.find(s => s.id === activeEquationEdit.secId);
+          if (sec && sec.elements[activeEquationEdit.elemIdx]) {
+            const elem = sec.elements[activeEquationEdit.elemIdx];
+            if (modalEqCaption) elem.caption = modalEqCaption.value.trim() || 'Equation Formula';
+            if (modalEqFormula) elem.equation = modalEqFormula.value.trim();
+            renderSections();
+            showToast(`✓ Saved "${elem.caption}"`);
+          }
+        }
+        if (modalEquationEditor) modalEquationEditor.close();
+      });
+    }
+
+    // Add Section Button
+    if (btnAddSection) {
+      btnAddSection.addEventListener('click', () => {
+        const newSecIndex = reportStructure.sections.length + 1;
+        reportStructure.sections.push({
+          id: 'sec_' + Date.now(),
+          title: `Section ${newSecIndex}: Topic Heading`,
+          context: '',
+          elements: [
+            {
+              id: 'sub_' + Date.now(),
+              type: 'subsection',
+              title: `${newSecIndex}.1 Subsection Overview`,
+              content: ''
+            }
+          ]
+        });
+        renderSections();
+      });
+    }
+
+    // Real-time Abstract & Keywords Input Listeners
+    if (reportAbstract) {
+      reportAbstract.addEventListener('input', () => {
+        reportStructure.abstract = reportAbstract.value;
+        updateAbstractWordCount();
+        updateAbstractDashboardBadge();
+      });
+    }
+
+    if (reportKeywords) {
+      reportKeywords.addEventListener('input', () => {
+        reportStructure.keywords = reportKeywords.value;
+        renderKeywordTags();
+        updateAbstractDashboardBadge();
+      });
+    }
+
+    // Save Abstract Button (in-page)
+    if (btnSaveAbstract) {
+      btnSaveAbstract.addEventListener('click', () => {
+        if (reportAbstract) reportStructure.abstract = reportAbstract.value.trim();
+        if (reportKeywords) reportStructure.keywords = reportKeywords.value.trim();
+        updateAbstractDashboardBadge();
+        updateGenerateSummary();
+        showToast('✓ Saved Abstract & Keywords');
+      });
+    }
+
+    // Save Context Button (in-page, with Django CSRF & POST sync)
+    if (btnSaveContext) {
+      btnSaveContext.addEventListener('click', async () => {
+        if (reportTitleInput) reportStructure.title = reportTitleInput.value.trim();
+        const validAuthors = getFormattedAuthors();
+        reportStructure.author = validAuthors.length ? validAuthors.join(', ') : 'Anonymous';
+        updateGenerateSummary();
+
+        try {
+          await saveAllToBackend();
+          showToast(`✓ Saved: "${reportStructure.title || 'Untitled'}" (${validAuthors.length} Author${validAuthors.length > 1 ? 's' : ''}, ${reportStructure.sections.length} Sections)`);
+        } catch (err) {
+          // Toast or error notification already displayed by saveAllToBackend
+        }
+      });
+    }
+
+    // Generate PDF Button: Save form state, call /generate/, and trigger download
+    if (btnGenerateReport) {
+      let isCountingDown = false;
+      btnGenerateReport.addEventListener('click', async () => {
+        if (isCountingDown) return;
+
+        const originalText = 'Generate PDF Document';
+        const errContainer = document.getElementById('generateErrorContainer');
+        if (errContainer) {
+          errContainer.style.display = 'none';
+          errContainer.innerHTML = '';
+        }
+
+        btnGenerateReport.disabled = true;
+        btnGenerateReport.textContent = 'Generating... this can take up to a minute';
+
+        // 1. Save all data to backend session
+        try {
+          await saveAllToBackend();
+        } catch (saveErr) {
+          btnGenerateReport.disabled = false;
+          btnGenerateReport.textContent = originalText;
+          if (errContainer) {
+            errContainer.style.display = 'block';
+            errContainer.innerHTML = `
+              <div style="background: rgba(224, 68, 62, 0.08); border: 1px solid rgba(224, 68, 62, 0.3); border-radius: var(--radius-sm); padding: 14px 16px; color: #d32f2f; font-size: 13px;">
+                <div style="font-weight: 600; margin-bottom: 4px;">⚠ Unable to Proceed</div>
+                <div>${escapeHtml(saveErr.message)}</div>
+              </div>
+            `;
+          }
+          return;
+        }
+
+        // 2. Request PDF generation
+        try {
+          const csrfToken = getCSRFToken();
+          const res = await fetch('/generate/', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'X-CSRFToken': csrfToken,
+            },
+          });
+
+          if (res.ok) {
+            const blob = await res.blob();
+            let filename = 'report.pdf';
+            const disposition = res.headers.get('Content-Disposition') || res.headers.get('content-disposition');
+            if (disposition) {
+              const match = disposition.match(/filename=["']?([^"';]+)["']?/i);
+              if (match && match[1]) {
+                filename = match[1].trim();
+              }
+            }
+
+            const blobUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(blobUrl);
+
+            showToast(`✓ Downloaded ${filename}`);
+            btnGenerateReport.disabled = false;
+            btnGenerateReport.textContent = originalText;
+            return;
+          }
+
+          // Error handling: parse JSON
+          let errData = {};
+          try {
+            errData = await res.json();
+          } catch (_) {}
+
+          if (res.status === 400) {
+            const errorsList = Array.isArray(errData.errors) ? errData.errors : (errData.error ? [errData.error] : ['Validation error occurred.']);
+            if (errContainer) {
+              errContainer.style.display = 'block';
+              errContainer.innerHTML = `
+                <div style="background: rgba(224, 68, 62, 0.08); border: 1px solid rgba(224, 68, 62, 0.3); border-radius: var(--radius-sm); padding: 14px 16px; color: #d32f2f; font-size: 13px;">
+                  <div style="font-weight: 600; margin-bottom: 6px;">⚠ Please correct the following issues:</div>
+                  <ul style="margin: 0; padding-left: 20px; line-height: 1.5;">
+                    ${errorsList.map(msg => `<li>${escapeHtml(msg)}</li>`).join('')}
+                  </ul>
+                </div>
+              `;
+            }
+            showToast(`⚠ Validation error: ${errorsList[0]}`);
+
+          } else if (res.status === 429) {
+            const match = (errData.error || '').match(/(\d+)\s*second/i);
+            let waitSeconds = match ? parseInt(match[1], 10) : (errData.retry_after || 10);
+            if (!waitSeconds || waitSeconds <= 0) waitSeconds = 10;
+
+            let remaining = waitSeconds;
+            const waitMessage = errData.error || `Please wait ${remaining} second(s) before requesting another PDF generation.`;
+            showToast(`⏳ ${waitMessage}`);
+
+            if (errContainer) {
+              errContainer.style.display = 'block';
+              errContainer.innerHTML = `
+                <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); border-radius: var(--radius-sm); padding: 14px 16px; color: #b45309; font-size: 13px;">
+                  <div style="font-weight: 600; margin-bottom: 4px;">⏳ Rate Limit Cooldown</div>
+                  <div>${escapeHtml(waitMessage)}</div>
+                </div>
+              `;
+            }
+
+            isCountingDown = true;
+            btnGenerateReport.disabled = true;
+            btnGenerateReport.textContent = `Wait ${remaining}s...`;
+
+            const timer = setInterval(() => {
+              remaining -= 1;
+              if (remaining <= 0) {
+                clearInterval(timer);
+                isCountingDown = false;
+                btnGenerateReport.disabled = false;
+                btnGenerateReport.textContent = originalText;
+                if (errContainer) errContainer.style.display = 'none';
+              } else {
+                btnGenerateReport.textContent = `Wait ${remaining}s...`;
+              }
+            }, 1000);
+
+          } else if (res.status === 502) {
+            const shortMsg = errData.error || 'LaTeX document compilation failed.';
+            showToast(`⚠ Compile error: ${shortMsg}`);
+            if (errContainer) {
+              errContainer.style.display = 'block';
+              errContainer.innerHTML = `
+                <div style="background: rgba(224, 68, 62, 0.08); border: 1px solid rgba(224, 68, 62, 0.3); border-radius: var(--radius-sm); padding: 14px 16px; color: #d32f2f; font-size: 13px;">
+                  <div style="font-weight: 600; margin-bottom: 4px;">⚠ Compilation Failed</div>
+                  <div>${escapeHtml(shortMsg)}</div>
+                  ${errData.log_tail ? `
+                    <details style="margin-top: 10px;">
+                      <summary style="cursor: pointer; font-weight: 500; outline: none;">View Compilation Log</summary>
+                      <pre style="margin-top: 8px; padding: 10px; background: rgba(0,0,0,0.06); border-radius: 6px; font-family: monospace; font-size: 11.5px; overflow-x: auto; max-height: 200px; white-space: pre-wrap; color: var(--text-primary);">${escapeHtml(errData.log_tail)}</pre>
+                    </details>
+                  ` : ''}
+                </div>
+              `;
+            }
+
+          } else if (res.status === 504) {
+            const timeoutMsg = errData.error || 'Document compilation timed out. Please try again with simpler content.';
+            showToast(`⏱ ${timeoutMsg}`);
+            if (errContainer) {
+              errContainer.style.display = 'block';
+              errContainer.innerHTML = `
+                <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); border-radius: var(--radius-sm); padding: 14px 16px; color: #b45309; font-size: 13px;">
+                  <div style="font-weight: 600; margin-bottom: 4px;">⏱ Request Timed Out</div>
+                  <div>${escapeHtml(timeoutMsg)}</div>
+                </div>
+              `;
+            }
+
+          } else {
+            const genericMsg = errData.error || (Array.isArray(errData.errors) ? errData.errors.join('; ') : null) || `Generation failed with status ${res.status}.`;
+            showToast(`⚠ ${genericMsg}`);
+            if (errContainer) {
+              errContainer.style.display = 'block';
+              errContainer.innerHTML = `
+                <div style="background: rgba(224, 68, 62, 0.08); border: 1px solid rgba(224, 68, 62, 0.3); border-radius: var(--radius-sm); padding: 14px 16px; color: #d32f2f; font-size: 13px;">
+                  <div style="font-weight: 600; margin-bottom: 4px;">⚠ Generation Error</div>
+                  <div>${escapeHtml(genericMsg)}</div>
+                </div>
+              `;
+            }
+          }
+
+        } catch (fetchErr) {
+          showToast(`⚠ Network error: ${fetchErr.message}`);
+          if (errContainer) {
+            errContainer.style.display = 'block';
+            errContainer.innerHTML = `
+              <div style="background: rgba(224, 68, 62, 0.08); border: 1px solid rgba(224, 68, 62, 0.3); border-radius: var(--radius-sm); padding: 14px 16px; color: #d32f2f; font-size: 13px;">
+                <div style="font-weight: 600; margin-bottom: 4px;">⚠ Network Error</div>
+                <div>${escapeHtml(fetchErr.message)}</div>
+              </div>
+            `;
+          }
+        } finally {
+          if (!isCountingDown) {
+            btnGenerateReport.disabled = false;
+            btnGenerateReport.textContent = originalText;
+          }
+        }
+      });
+    }
+
+    // Theme Toggle
+    themeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('dark-theme');
+      const isDark = document.body.classList.contains('dark-theme');
+      showToast(isDark ? 'Switched to Dark Canvas' : 'Switched to Light Canvas');
+    });
+
+    // Load initial Django data if provided
+    loadDjangoInitialData();
+
+    // Initialize Badges & Forms
+    updateReferenceDashboardBadge();
+    updateAbstractDashboardBadge();
+    syncAbstractInputs();
+    syncContextInputs();
+
+    // Activate the view matching current URL path, Django initial view, or hash
+    const initialView = resolveInitialView();
+    switchView(initialView, false);
+  </script>
+</body>
+</html>
