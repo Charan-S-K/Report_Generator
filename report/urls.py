@@ -12,6 +12,8 @@ urlpatterns = [
     path('context/', views.index, name='context'),
     path('generate/', views.generate_view, name='generate'),
     path('api/generate/', views.generate_view, name='api_generate'),
+    path('generate-code/', views.generate_code_view, name='generate_code'),
+    path('api/generate-code/', views.generate_code_view, name='api_generate_code'),
 
     # Health check endpoint
     path('health/', views.health_check, name='health_check'),

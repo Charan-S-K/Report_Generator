@@ -53,12 +53,11 @@ class ieee:
     self.img = False
     self.count_e = 0
     self.images = {}
+    self.n = 0
 
   def add_title(self,title:str):
-    self.title = r"""
-    \title{<<title>>}
-    %<<author>>
-    """
+    self.title = r"""\title{<<title>>}
+    %<<author>>"""
 
     sam = self.title.replace('<<title>>',title)
     self.template = self.template.replace('%<<title>>',sam)
@@ -67,15 +66,11 @@ class ieee:
     #print(self.template)
 
   def add_author(self,number:int,names:list,affi:list):
-    self.main_author = r"""
-    \author{
+    self.main_author = r"""\author{
     %<<here>>
-    }
-    """
-    self.author = r"""
-    \IEEEauthorblockN{<<name>>}
-    \IEEEauthorblockA{<<affialative>>}\\
-    """
+    }"""
+    self.author = r"""\IEEEauthorblockN{<<name>>}
+    \IEEEauthorblockA{<<affialative>>}\\"""
     block= r""""""
 
     for i in range(number):
@@ -94,27 +89,30 @@ class ieee:
     #print(self.template)
 
   def add_section(self,name:str,contain:str):
-    self.section = r"""
-    \section{<<name>>}
+    self.section = r"""\section{<<name>>}
     %<<contain>>
-    %<<subsection>>
-    %<<insert>>
-    """
+    %<<insert>>"""
     sam = self.section.replace('<<name>>',name)
     sam = sam.replace('%<<contain>>',contain)
     self.template = self.template.replace('%<<insert>>',sam)
     self.context.append(f'%section{self.count_section}>>')
     self.count_section+=1
     #print(self.template)
+  def add_content(self,con:str):
+    self.template = self.template.replace('%<<insert>>',con+"""
+    %<<insert>>""")
+
+  def add_cit(self,content:str,name:list)->str:
+    lt = ['[r'+str(i)+']' for i in range(1,self.n+1)]
+    for l in lt:
+      content = content.replace(l,r'\cite{'+name[lt.index(l)]+'}')
+    return content
 
   def add_abstract(self,contain = '%<<abstract>>',keyword = None):
-    self.abstract = r"""
-    \begin{abstract}
+    self.abstract = r"""\begin{abstract}
     %<<contain>>
-    \end{abstract}
-    """
-    self.key = r"""
-    \begin{IEEEkeywords}
+    \end{abstract}"""
+    self.key = r"""\begin{IEEEkeywords}
     <<keyword>>
     \end{IEEEkeywords}"""
     sam1 = None
@@ -126,17 +124,16 @@ class ieee:
     #print(self.template)
 
   def add_subsection(self,contain:list,names:list):
-    self.subsection = r"""
-    \subsection{<<name>>}
+    self.subsection = r"""\subsection{<<name>>}
     %<<contains>>
-    """
+    %<<insert>>"""
     block = r""""""
     for i in range(len(names)):
       sam = self.subsection.replace('<<name>>',names[i])
       if contain is not None:
         sam = sam.replace('%<<contains>>',contain[i])
       block+=sam
-    self.template = self.template.replace('%<<subsection>>',block)
+    self.template = self.template.replace('%<<insert>>',block)
     self.context.append(f'%<<subsection{self.count_subsection}>>')
     self.count_subsection+=1
     #print(self.template)
@@ -155,8 +152,7 @@ class ieee:
     return col,row
 
   def add_table(self,columns:int,head:list,data : list,caption=None,label=None):
-    self.table = r"""
-    \begin{table}[htbp]
+    self.table = r"""\begin{table}[htbp]
     %<<caption>>
     %<<label>>
     \centering
@@ -166,8 +162,7 @@ class ieee:
     %<<row>>
     \end{tabular}
     \end{table}
-    %<<insert>>
-    """
+    %<<insert>>"""
     self.caption = r"\caption{<<caption>>}"
     self.label = r"\label{tab:<<label>>}"
     col,row = self.add_rows(head,data)
@@ -185,11 +180,9 @@ class ieee:
     #print(self.template)
 
   def add_reference(self,num:int,name:list,data:list,link:list):
-    self.ref = r"""
-    \begin{thebibliography}{00}
+    self.ref = r"""\begin{thebibliography}{00}
     %<<ref>>
-    \end{thebibliography}
-    """
+    \end{thebibliography}"""
     self.item = r"""\bibitem{<<n>>}
     %<<ref>> %<<link>>
     """
@@ -202,15 +195,16 @@ class ieee:
       block+=sam
     sam = self.ref.replace('%<<ref>>',block)
     self.template = self.template.replace('%<<ref>>',sam)
-    print(self.get_template())
+
+    self.n = num
+    self.template = self.add_cit(self.template,name)
+    #print(self.get_template())
 
   def add_equation(self,equation:list):
-    self.equa = r"""
-    \begin{equation}
+    self.equa = r"""\begin{equation}
     %<<e>>
     \end{equation}
-    %<<insert>>
-    """
+    %<<insert>>"""
     block = r""""""
     for i in equation:
       block = i + r' \\ '+r"""
@@ -247,8 +241,7 @@ class ieee:
     \caption{<<cap>>}
     \label{fig:<<fig>>}
     \end{figure}
-    %<<insert>>
-    """
+    %<<insert>>"""
     sam = self.format.replace('<<w>>', width)
     sam = sam.replace('<<IMGTYPE>>', type)
     sam = sam.replace('<<fig>>', name)             # label follows the key: fig:image1
@@ -259,7 +252,18 @@ class ieee:
     self.count_image += 1
     self.template = self.template.replace('%<<insert>>', sam, 1)
 
-    
+  def add_gen_image(self,name:str,caption:str,fig:str,width:str='8cm'):
+    self.image = r"""\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=<w>]{<<name>>}
+    \caption{<<cap>>}
+    \label{fig:<<fig>>}
+    \end{figure}"""
+    sam = self.image.replace('<<name>>',name)
+    sam = sam.replace('<<cap>>',caption)
+    sam = sam.replace('<<fig>>',fig)
+    sam = sam.replace('<w>',width)
+    self.template = self.template.replace('%<<insert>>',sam)
 
   def get_context(self):
     return self.context
@@ -267,4 +271,3 @@ class ieee:
 
   def get_template(self):
     return self.template
-

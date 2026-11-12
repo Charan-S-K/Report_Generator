@@ -633,6 +633,187 @@
       color: var(--text-secondary);
     }
 
+    .citation-info-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      padding: 9px 12px;
+      background: rgba(0, 0, 0, 0.025);
+      border: 1px solid var(--grid-line);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    body.dark-theme .citation-info-box {
+      background: rgba(255, 255, 255, 0.03);
+      border-color: var(--grid-line);
+    }
+
+    .citation-info-box svg {
+      flex-shrink: 0;
+      color: var(--gold-accent);
+    }
+
+    .citation-info-box strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .content-citation-helper {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      line-height: 1.35;
+    }
+
+    .content-citation-helper svg {
+      flex-shrink: 0;
+      color: var(--gold-accent);
+    }
+
+    .content-citation-helper strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* AI Response Code Block */
+    .ai-code-block-container {
+      width: 100%;
+      margin-top: 24px;
+      text-align: left;
+    }
+
+    .ai-code-block {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+
+    body.dark-theme .ai-code-block {
+      background: #0d1117;
+      border-color: #30363d;
+    }
+
+    .ai-code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #161b22;
+      padding: 9px 14px;
+      border-bottom: 1px solid #30363d;
+      font-size: 12px;
+      color: #8b949e;
+      user-select: none;
+    }
+
+    .ai-code-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ai-code-lang {
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: #58a6ff;
+    }
+
+    .ai-code-meta {
+      font-size: 11.5px;
+      color: #8b949e;
+      border-left: 1px solid #30363d;
+      padding-left: 8px;
+    }
+
+    .ai-copy-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      line-height: 1.4;
+    }
+
+    .ai-copy-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      border-color: #8b949e;
+    }
+
+    .ai-copy-btn.copied {
+      background: rgba(46, 160, 67, 0.2);
+      border-color: rgba(46, 160, 67, 0.5);
+      color: #3fb950;
+    }
+
+    .ai-code-body {
+      background: #0d1117;
+      max-height: 520px;
+      overflow-y: auto;
+      overflow-x: auto;
+      padding: 16px 18px;
+    }
+
+    .ai-code-body pre {
+      margin: 0;
+      padding: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: #e6edf3;
+      tab-size: 2;
+    }
+
+    .ai-code-body code {
+      font-family: inherit;
+      color: inherit;
+      white-space: pre;
+    }
+
+    .ai-code-body::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .ai-code-body::-webkit-scrollbar-track {
+      background: #0d1117;
+    }
+
+    .ai-code-body::-webkit-scrollbar-thumb {
+      background: #30363d;
+      border-radius: 4px;
+    }
+
+    .ai-code-body::-webkit-scrollbar-thumb:hover {
+      background: #484f58;
+    }
+
+    .spin-icon {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
     .sections-container {
       display: flex;
       flex-direction: column;
@@ -736,6 +917,16 @@
     .badge-subsection {
       background: rgba(56, 189, 248, 0.15);
       color: #0284c7;
+    }
+
+    .badge-content {
+      background: rgba(34, 197, 94, 0.15);
+      color: #16a34a;
+    }
+
+    body.dark-theme .badge-content {
+      background: rgba(34, 197, 94, 0.22);
+      color: #4ade80;
     }
 
     .badge-image {
@@ -2065,7 +2256,15 @@
             <div class="sections-header" style="width: 100%;">
               <div>
                 <h4>Sections Structure</h4>
-                <span class="sections-hint">Each section contains [Title, Context] above dynamic Subsections, Images, Tables, and Equations</span>
+                <span class="sections-hint">Each section contains [Title, Context] above dynamic Subsections, Content, Images, Tables, and Equations</span>
+                <div class="citation-info-box">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="16" x2="12" y2="12"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                  </svg>
+                  <span>To add a citation, type <strong>[rI]</strong> in your text, where <strong>I</strong> is the reference number. Example: <strong>[r1]</strong> cites Reference 1 and <strong>[r2]</strong> cites Reference 2.</span>
+                </div>
               </div>
             </div>
 
@@ -2082,12 +2281,19 @@
             </button>
 
             <!-- Context Actions Footer -->
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 10px; padding-top: 14px; border-top: 1px solid rgba(0,0,0,0.06);">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 10px; padding-top: 14px; border-top: 1px solid rgba(0,0,0,0.06); flex-wrap: wrap; gap: 10px;">
               <a href="{% url 'abstract' %}" class="btn-secondary" id="btnBackToAbstract" data-nav="abstract" style="display: inline-flex; align-items: center; gap: 6px;">
                 &larr; Back to Abstract
               </a>
-              <div style="display: flex; gap: 10px;">
+              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <button type="button" class="btn-secondary" id="btnSaveContext">Save Context</button>
+                <button type="button" class="btn-secondary" id="btnGenerateCodeContext" style="display: inline-flex; align-items: center; gap: 6px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="16 18 22 12 16 6"/>
+                    <polyline points="8 6 2 12 8 18"/>
+                  </svg>
+                  <span>Generate Code</span>
+                </button>
                 <a href="{% url 'generate' %}" class="btn-primary" id="btnContinueToGenerate" data-nav="generate" style="display: inline-flex; align-items: center; gap: 6px;">
                   Continue to Generate PDF &rarr;
                 </a>
@@ -2121,13 +2327,48 @@
 
             <div id="generateErrorContainer" style="display: none; margin-bottom: 20px; text-align: left;"></div>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 12px; flex-wrap: wrap;">
               <a href="{% url 'context' %}" class="btn-secondary" id="btnBackToContext" data-nav="context" style="display: inline-flex; align-items: center; gap: 6px;">
                 &larr; Back to Context
               </a>
-              <button class="btn-primary" id="btnGenerateReport" style="padding: 12px 28px; font-size: 14.5px; flex: 1;">
-                Generate PDF Document
-              </button>
+              <div style="display: flex; gap: 10px; flex: 1; justify-content: flex-end; flex-wrap: wrap;">
+                <button type="button" class="btn-secondary" id="btnGenerateCode" style="padding: 12px 22px; font-size: 14px; display: inline-flex; align-items: center; gap: 7px;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="16 18 22 12 16 6"/>
+                    <polyline points="8 6 2 12 8 18"/>
+                  </svg>
+                  <span>Generate Code</span>
+                </button>
+                <button class="btn-primary" id="btnGenerateReport" style="padding: 12px 26px; font-size: 14.5px;">
+                  Generate PDF Document
+                </button>
+              </div>
+            </div>
+
+            <!-- AI-Style Code Response Block -->
+            <div id="aiCodeBlockContainer" class="ai-code-block-container" style="display: none;">
+              <div class="ai-code-block">
+                <div class="ai-code-header">
+                  <div class="ai-code-header-left">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="16 18 22 12 16 6"/>
+                      <polyline points="8 6 2 12 8 18"/>
+                    </svg>
+                    <span class="ai-code-lang">LaTeX</span>
+                    <span class="ai-code-meta" id="aiCodeMeta">ieee_report.tex</span>
+                  </div>
+                  <button type="button" class="ai-copy-btn" id="btnCopyGeneratedCode" title="Copy code to clipboard">
+                    <svg class="copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    <span class="copy-btn-text">Copy code</span>
+                  </button>
+                </div>
+                <div class="ai-code-body">
+                  <pre><code id="generatedCodeDisplay"></code></pre>
+                </div>
+              </div>
             </div>
           </section>
         </div>
@@ -2319,6 +2560,12 @@
     const btnAddAuthor = document.getElementById('btnAddAuthor');
     const btnSaveContext = document.getElementById('btnSaveContext');
     const btnGenerateReport = document.getElementById('btnGenerateReport');
+    const btnGenerateCode = document.getElementById('btnGenerateCode');
+    const btnGenerateCodeContext = document.getElementById('btnGenerateCodeContext');
+    const btnCopyGeneratedCode = document.getElementById('btnCopyGeneratedCode');
+    const aiCodeBlockContainer = document.getElementById('aiCodeBlockContainer');
+    const generatedCodeDisplay = document.getElementById('generatedCodeDisplay');
+    const aiCodeMeta = document.getElementById('aiCodeMeta');
     const mainCanvas = document.getElementById('mainCanvas');
     const appWindow = document.getElementById('appWindow');
 
@@ -2867,6 +3114,11 @@
               title: elem.title || '',
               content: elem.content || '',
             };
+          } else if (elem.type === 'content') {
+            return {
+              type: 'content',
+              content: elem.content || '',
+            };
           } else if (elem.type === 'image') {
             const fmt = (elem.imageType || 'png').toLowerCase().replace('jpeg', 'jpg');
             return {
@@ -2875,6 +3127,7 @@
               width: elem.width || '8cm',
               imageType: fmt,
               image_id: elem.imageId,
+              fileName: elem.fileName || '',
             };
           } else if (elem.type === 'table') {
             const cols = parseInt(elem.columnsCount, 10) || (elem.gridData && elem.gridData[0] ? elem.gridData[0].length : 2);
@@ -3089,6 +3342,22 @@
               <input type="text" class="element-input" placeholder="Subsection Title (e.g. 1.1 Methodology)" value="${escapeHtml(elem.title)}" data-action="update-elem-title">
               <textarea class="element-input element-textarea" placeholder="Subsection Content / Analysis Prompt..." data-action="update-elem-content">${escapeHtml(elem.content || '')}</textarea>
             `;
+          } else if (elem.type === 'content') {
+            elemCard.innerHTML = `
+              <div class="element-header">
+                <span class="element-badge badge-content">Content</span>
+                <button type="button" class="btn-remove-element" title="Remove Content" data-action="remove-elem">&times;</button>
+              </div>
+              <div class="content-citation-helper">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="16" x2="12" y2="12"/>
+                  <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <span>To add a citation, type <strong>[rI]</strong> (e.g. <strong>[r1]</strong> cites Reference 1, <strong>[r2]</strong> cites Reference 2).</span>
+              </div>
+              <textarea class="element-input element-textarea" placeholder="Content text... use [r1], [r2] to cite references" title="To add a citation, type [rI] in your text, where I is the reference number. Example: [r1] cites Reference 1 and [r2] cites Reference 2." data-action="update-elem-content">${escapeHtml(elem.content || '')}</textarea>
+            `;
           } else if (elem.type === 'image') {
             const imgType = (elem.imageType || 'png').toLowerCase();
             const acceptAttr = imgType === 'jpg' ? '.jpg,.jpeg,image/jpeg' : '.png,image/png';
@@ -3279,6 +3548,10 @@
           <button type="button" class="btn-sub-action" data-action="add-subsection">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             <span>Subsection</span>
+          </button>
+          <button type="button" class="btn-sub-action" data-action="add-content">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="14" y2="18"/></svg>
+            <span>Content</span>
           </button>
           <button type="button" class="btn-sub-action" data-action="add-image">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -3549,6 +3822,13 @@
             id: 'sub_' + Date.now(),
             type: 'subsection',
             title: `Subsection ${section.elements.length + 1}`,
+            content: ''
+          });
+          renderSections();
+        } else if (action === 'add-content') {
+          section.elements.push({
+            id: 'content_' + Date.now(),
+            type: 'content',
             content: ''
           });
           renderSections();
@@ -4071,6 +4351,193 @@
             btnGenerateReport.disabled = false;
             btnGenerateReport.textContent = originalText;
           }
+        }
+      });
+    }
+
+    // Generate Code Button: Sync data, request LaTeX code from /generate-code/, and display in AI-style copy box
+    async function handleGenerateCode() {
+      const errContainer = document.getElementById('generateErrorContainer');
+      if (errContainer) {
+        errContainer.style.display = 'none';
+        errContainer.innerHTML = '';
+      }
+
+      const originalContextHtml = btnGenerateCodeContext ? btnGenerateCodeContext.innerHTML : '';
+      const originalGenHtml = btnGenerateCode ? btnGenerateCode.innerHTML : '';
+
+      const loadingHtml = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 0.8s linear infinite;">
+          <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
+          <path d="M12 2a10 10 0 0 1 10 10"/>
+        </svg>
+        <span>Generating Code...</span>
+      `;
+
+      if (btnGenerateCode) {
+        btnGenerateCode.disabled = true;
+        btnGenerateCode.innerHTML = loadingHtml;
+      }
+      if (btnGenerateCodeContext) {
+        btnGenerateCodeContext.disabled = true;
+        btnGenerateCodeContext.innerHTML = loadingHtml;
+      }
+
+      try {
+        // 1. Sync any pending input changes and save all data to backend session
+        if (reportTitleInput) reportStructure.title = reportTitleInput.value.trim();
+        const validAuthors = getFormattedAuthors();
+        reportStructure.author = validAuthors.length ? validAuthors.join(', ') : 'Anonymous';
+        if (reportAbstract) reportStructure.abstract = reportAbstract.value.trim();
+        if (reportKeywords) reportStructure.keywords = reportKeywords.value.trim();
+
+        await saveAllToBackend();
+
+        // 2. Request LaTeX code generation
+        const csrfToken = getCSRFToken();
+        const res = await fetch('/generate-code/', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        let data = {};
+        try {
+          data = await res.json();
+        } catch (_) {}
+
+        if (res.ok && data.status === 'success') {
+          // Switch to generate view if triggered from context panel
+          if (viewPanels.generate && !viewPanels.generate.classList.contains('active')) {
+            switchView('generate', true);
+          }
+
+          if (generatedCodeDisplay) {
+            generatedCodeDisplay.textContent = data.code || '';
+          }
+          if (aiCodeMeta) {
+            const lines = data.lines !== undefined ? `${data.lines} lines` : '';
+            const chars = data.characters !== undefined ? `${data.characters} chars` : '';
+            const metaParts = [data.filename || 'report.tex', lines, chars].filter(Boolean);
+            aiCodeMeta.textContent = metaParts.join(' • ');
+          }
+          if (aiCodeBlockContainer) {
+            aiCodeBlockContainer.style.display = 'block';
+            aiCodeBlockContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+
+          showToast('✓ LaTeX code generated successfully!');
+        } else {
+          // Switch to generate view to show error if not already there
+          if (viewPanels.generate && !viewPanels.generate.classList.contains('active')) {
+            switchView('generate', true);
+          }
+
+          const errorsList = Array.isArray(data.errors) ? data.errors : (data.error ? [data.error] : ['Failed to generate LaTeX code.']);
+          if (errContainer) {
+            errContainer.style.display = 'block';
+            errContainer.innerHTML = `
+              <div style="background: rgba(224, 68, 62, 0.08); border: 1px solid rgba(224, 68, 62, 0.3); border-radius: var(--radius-sm); padding: 14px 16px; color: #d32f2f; font-size: 13px;">
+                <div style="font-weight: 600; margin-bottom: 4px;">⚠ Unable to Generate Code</div>
+                <ul style="margin: 0; padding-left: 20px; line-height: 1.5;">
+                  ${errorsList.map(msg => `<li>${escapeHtml(msg)}</li>`).join('')}
+                </ul>
+              </div>
+            `;
+          }
+          showToast(`⚠ Error: ${errorsList[0]}`);
+        }
+      } catch (err) {
+        if (viewPanels.generate && !viewPanels.generate.classList.contains('active')) {
+          switchView('generate', true);
+        }
+        if (errContainer) {
+          errContainer.style.display = 'block';
+          errContainer.innerHTML = `
+            <div style="background: rgba(224, 68, 62, 0.08); border: 1px solid rgba(224, 68, 62, 0.3); border-radius: var(--radius-sm); padding: 14px 16px; color: #d32f2f; font-size: 13px;">
+              <div style="font-weight: 600; margin-bottom: 4px;">⚠ Generation Error</div>
+              <div>${escapeHtml(err.message)}</div>
+            </div>
+          `;
+        }
+        showToast(`⚠ ${err.message}`);
+      } finally {
+        if (btnGenerateCode) {
+          btnGenerateCode.disabled = false;
+          btnGenerateCode.innerHTML = originalGenHtml;
+        }
+        if (btnGenerateCodeContext) {
+          btnGenerateCodeContext.disabled = false;
+          btnGenerateCodeContext.innerHTML = originalContextHtml;
+        }
+      }
+    }
+
+    if (btnGenerateCode) {
+      btnGenerateCode.addEventListener('click', handleGenerateCode);
+    }
+    if (btnGenerateCodeContext) {
+      btnGenerateCodeContext.addEventListener('click', handleGenerateCode);
+    }
+
+    // Copy Generated Code to Clipboard with feedback animation
+    if (btnCopyGeneratedCode) {
+      btnCopyGeneratedCode.addEventListener('click', async () => {
+        const code = generatedCodeDisplay ? generatedCodeDisplay.textContent : '';
+        if (!code) {
+          showToast('⚠ No code to copy');
+          return;
+        }
+
+        let success = false;
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(code);
+            success = true;
+          }
+        } catch (_) {}
+
+        if (!success) {
+          try {
+            const tempTextarea = document.createElement('textarea');
+            tempTextarea.value = code;
+            tempTextarea.style.position = 'fixed';
+            tempTextarea.style.left = '-9999px';
+            tempTextarea.style.top = '0';
+            document.body.appendChild(tempTextarea);
+            tempTextarea.focus();
+            tempTextarea.select();
+            success = document.execCommand('copy');
+            document.body.removeChild(tempTextarea);
+          } catch (_) {}
+        }
+
+        if (success) {
+          showToast('✓ LaTeX code copied to clipboard!');
+          btnCopyGeneratedCode.classList.add('copied');
+          const copyIcon = btnCopyGeneratedCode.querySelector('.copy-icon');
+          const copyBtnText = btnCopyGeneratedCode.querySelector('.copy-btn-text');
+
+          if (copyBtnText) copyBtnText.textContent = 'Copied!';
+          if (copyIcon) {
+            copyIcon.innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+          }
+
+          setTimeout(() => {
+            btnCopyGeneratedCode.classList.remove('copied');
+            if (copyBtnText) copyBtnText.textContent = 'Copy code';
+            if (copyIcon) {
+              copyIcon.innerHTML = `
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              `;
+            }
+          }, 2000);
+        } else {
+          showToast('⚠ Failed to copy code automatically. Please select and copy manually.');
         }
       });
     }

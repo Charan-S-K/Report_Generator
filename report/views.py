@@ -276,7 +276,7 @@ def abstract_keywords_view(request):
     })
 
 
-VALID_ELEMENT_TYPES = {"subsection", "image", "table", "equation"}
+VALID_ELEMENT_TYPES = {"subsection", "image", "table", "equation", "content"}
 
 
 @require_http_methods(["GET", "POST"])
@@ -360,6 +360,10 @@ def sections_view(request):
                     "content": sub_content,
                 })
 
+            elif elem_type == "content":
+                content_text = str(elem.get("content", "") or "").strip()
+                stored_elements.append({"type": "content", "content": content_text})
+
             elif elem_type == "image":
                 caption = str(elem.get("caption", "") or "").strip()
                 raw_width = str(elem.get("width", "8cm") or "8cm").strip()
@@ -377,12 +381,14 @@ def sections_view(request):
                         status=400,
                     )
                 image_id = elem.get("image_id") or elem.get("id")
+                file_name = str(elem.get("fileName") or elem.get("name") or elem.get("file_name") or "").strip()
                 stored_elements.append({
                     "type": "image",
                     "caption": caption,
                     "width": width,
                     "imageType": fmt,
                     "image_id": image_id,
+                    "fileName": file_name,
                 })
 
             elif elem_type == "table":
@@ -802,5 +808,50 @@ def generate_view(request):
     safe_name = sanitize_filename(session_data.get("title", ""))
     response["Content-Disposition"] = f'attachment; filename="{safe_name}.pdf"'
     return response
+
+
+@ensure_csrf_cookie
+@require_http_methods(["GET", "POST"])
+def generate_code_view(request):
+    """
+    Build report and return the generated LaTeX code via doc.get_template().
+    GET / POST: Reads session data, builds the IEEE LaTeX document, and returns
+    the complete code string without compiling to PDF.
+    """
+    if not request.session.session_key:
+        request.session.save()
+    session_key = request.session.session_key
+
+    session_data = {
+        "title": request.session.get("title", ""),
+        "authors": request.session.get("authors", []),
+        "abstract": request.session.get("abstract", ""),
+        "keywords": request.session.get("keywords", ""),
+        "sections": request.session.get("sections", []),
+        "references": request.session.get("references", []),
+    }
+
+    errors, valid_images = validate_report_data(session_data, session_key)
+    if errors:
+        return JsonResponse({"status": "error", "errors": errors}, status=400)
+
+    try:
+        doc = build_report(session_data, images=valid_images, session_key=session_key, generate_code=True)
+        code = doc.get_template()
+    except (ValidationError, PermissionDenied) as e:
+        return JsonResponse({"status": "error", "errors": [str(e)]}, status=400)
+    except Exception as e:
+        logger.exception("Unexpected error generating LaTeX code:")
+        return JsonResponse({"status": "error", "errors": [f"Document build error: {e}"]}, status=500)
+
+    safe_name = sanitize_filename(session_data.get("title", ""), fallback="report")
+    return JsonResponse({
+        "status": "success",
+        "code": code,
+        "filename": f"{safe_name}.tex",
+        "lines": len(code.splitlines()),
+        "characters": len(code),
+    })
+
 
 

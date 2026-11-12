@@ -2,6 +2,7 @@
 Report Builder module for converting session reportStructure JSON into an IEEE LaTeX object.
 Follows IEEE conference style requirements and calls only public methods on ieee().
 """
+import os
 import re
 from django.core.exceptions import ValidationError, PermissionDenied
 from ieee import ieee
@@ -132,7 +133,7 @@ def validate_equation(eq_str: str) -> None:
         raise ValidationError("Equation has unbalanced curly braces (unclosed opening brace).")
 
 
-def build_report(data: dict, images=None, session_key: str = None) -> ieee:
+def build_report(data: dict, images=None, session_key: str = None, generate_code: bool = False) -> ieee:
     """
     Build a fresh IEEE LaTeX document object from plain session JSON data.
     
@@ -146,6 +147,8 @@ def build_report(data: dict, images=None, session_key: str = None) -> ieee:
             - sections (list of {title, context, elements})
       images: Optional dict of {image_id: UploadedImage or bytes} or queryset.
       session_key: Optional session key for verifying image ownership.
+      generate_code: If True, uses add_gen_image for code generation output.
+                    If False (default), uses add_uploaded_image for PDF compilation.
 
     Returns:
       A freshly instantiated `ieee` object.
@@ -155,6 +158,7 @@ def build_report(data: dict, images=None, session_key: str = None) -> ieee:
 
     doc = ieee()
     table_count = 0
+    image_count = 0
 
     # 1. Title
     raw_title = data.get("title", "")
@@ -224,13 +228,22 @@ def build_report(data: dict, images=None, session_key: str = None) -> ieee:
                 )
                 doc.add_subsection([sub_content], [sub_title])
 
+            elif elem_type == "content":
+                content_text = convert_citations(
+                    escape_latex(elem.get("content", "")),
+                    num_refs=num_refs
+                )
+                doc.add_content(content_text)
+
             elif elem_type == "image":
+                image_count += 1
                 image_id = elem.get("image_id") or elem.get("id")
                 if not image_id:
                     raise ValidationError("Image element is missing required 'image_id'.")
 
                 # Retrieve image bytes and fmt
                 img_bytes = None
+                uploaded_img = None
                 img_fmt = elem.get("imageType") or elem.get("fmt", "png")
                 img_fmt = str(img_fmt).lower().lstrip(".").replace("jpeg", "jpg")
 
@@ -243,6 +256,7 @@ def build_report(data: dict, images=None, session_key: str = None) -> ieee:
                             raise ValidationError(f"Image ID '{image_id}' has expired.")
                         if session_key and item.session_key != session_key:
                             raise PermissionDenied(f"Image ID '{image_id}' belongs to another session.")
+                        uploaded_img = item
                         img_fmt = item.fmt
                         item.file.open('rb')
                         img_bytes = item.file.read()
@@ -270,7 +284,32 @@ def build_report(data: dict, images=None, session_key: str = None) -> ieee:
                 caption = escape_latex(strip_numbering(elem.get("caption", "")))
                 raw_width = str(elem.get("width", "8cm") or "8cm").strip()
                 width = re.sub(r'[\r\n{}]', '', raw_width).strip() or "8cm"
-                doc.add_uploaded_image(data=img_bytes, caption=caption, fmt=img_fmt, width=width)
+
+                if generate_code:
+                    file_name = str(elem.get("fileName") or elem.get("name") or elem.get("file_name") or "").strip()
+                    if not file_name and uploaded_img and uploaded_img.file:
+                        file_name = os.path.basename(uploaded_img.file.name)
+                    if not file_name:
+                        file_name = f"image_{image_count}.{img_fmt}"
+
+                    doc.add_gen_image(
+                        name=file_name,
+                        caption=caption,
+                        fig=f"fig{image_count}",
+                        width=width
+                    )
+                    # Safety check: ensure %<<insert>> marker is retained for subsequent elements
+                    if "%<<insert>>" not in doc.template:
+                        idx = doc.template.rfind(r"\end{figure}")
+                        if idx != -1:
+                            end_tag = r"\end{figure}"
+                            doc.template = (
+                                doc.template[:idx + len(end_tag)]
+                                + "\n    %<<insert>>"
+                                + doc.template[idx + len(end_tag):]
+                            )
+                else:
+                    doc.add_uploaded_image(data=img_bytes, caption=caption, fmt=img_fmt, width=width)
 
             elif elem_type == "table":
                 table_count += 1

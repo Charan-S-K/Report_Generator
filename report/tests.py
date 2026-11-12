@@ -90,6 +90,40 @@ class Step1SetupTests(TestCase):
             )
             self.assertContains(response, 'REPORT GENERATOR')
 
+    def test_spa_index_contains_content_element_wiring_and_citation_hint(self):
+        """Confirm index.html contains the Content button, citation info notes, and badges."""
+        response = self.client.get(reverse('index'))
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode('utf-8')
+
+        # 1. Hint text updated
+        self.assertIn(
+            "Each section contains [Title, Context] above dynamic Subsections, Content, Images, Tables, and Equations",
+            html
+        )
+
+        # 2. Citation info note present under Sections Structure
+        self.assertIn(
+            "To add a citation, type <strong>[rI]</strong> in your text, where <strong>I</strong> is the reference number. Example: <strong>[r1]</strong> cites Reference 1 and <strong>[r2]</strong> cites Reference 2.",
+            html
+        )
+
+        # 3. Action buttons order: add-subsection -> add-content -> add-image
+        pos_sub = html.find('data-action="add-subsection"')
+        pos_content = html.find('data-action="add-content"')
+        pos_img = html.find('data-action="add-image"')
+        self.assertNotEqual(pos_sub, -1)
+        self.assertNotEqual(pos_content, -1)
+        self.assertNotEqual(pos_img, -1)
+        self.assertLess(pos_sub, pos_content)
+        self.assertLess(pos_content, pos_img)
+
+        # 4. Badge styles
+        self.assertIn('.badge-content', html)
+
+        # 5. Placeholder for content element
+        self.assertIn('Content text... use [r1], [r2] to cite references', html)
+
 
 class Step2ReferencesTests(TestCase):
     """
@@ -698,6 +732,64 @@ class Step5SectionsTests(TestCase):
         res_put = self.client.put(reverse('sections'))
         self.assertEqual(res_put.status_code, 405)
 
+    def test_post_sections_with_content_element(self):
+        """Confirm content element type is accepted, stored, and returned in session."""
+        payload = {
+            "sections": [
+                {
+                    "title": "Section with Content",
+                    "context": "Context description.",
+                    "elements": [
+                        {
+                            "type": "content",
+                            "content": "This is raw body content citing [r1] and [r2]."
+                        }
+                    ]
+                }
+            ]
+        }
+        response = self.client.post(
+            reverse('sections'),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data.get('status'), 'success')
+        sec = data['sections'][0]
+        self.assertEqual(len(sec['elements']), 1)
+        self.assertEqual(sec['elements'][0]['type'], 'content')
+        self.assertEqual(sec['elements'][0]['content'], "This is raw body content citing [r1] and [r2].")
+
+        # GET confirms persistence
+        get_res = self.client.get(reverse('sections'))
+        self.assertEqual(get_res.status_code, 200)
+        self.assertEqual(get_res.json()['sections'][0]['elements'][0]['type'], 'content')
+
+    def test_post_sections_content_element_trims_whitespace(self):
+        """Confirm content element text is stripped of leading and trailing whitespace."""
+        payload = {
+            "sections": [
+                {
+                    "title": "Section with Whitespace Content",
+                    "elements": [
+                        {
+                            "type": "content",
+                            "content": "   Body text with surrounding spaces   \n"
+                        }
+                    ]
+                }
+            ]
+        }
+        response = self.client.post(
+            reverse('sections'),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        elem = response.json()['sections'][0]['elements'][0]
+        self.assertEqual(elem['content'], "Body text with surrounding spaces")
+
 
 class Step6ImageTests(TestCase):
     """
@@ -1194,19 +1286,18 @@ class Step7BuilderTests(TestCase):
         self.assertIn("Attention Is All You Need", tmpl)
         self.assertIn(r"\bibitem{ref1}", tmpl)
 
-        # Bugs in ieee.py revealed by this test:
-        # 1. Subsection 2 is missing from template because add_subsection leaves no %<<subsection>> token
+        # Verification with updated ieee.py:
+        # 1. Subsection 2 is preserved now that add_subsection leaves %<<insert>>
         has_subsection_2 = "Subsection After Image" in tmpl
-        self.assertFalse(
+        self.assertTrue(
             has_subsection_2,
-            "Bug in ieee.py: add_subsection does not provide a trailing %<<subsection>> tag, causing Subsection 2 to be dropped."
+            "Subsection 2 is properly preserved in template output."
         )
 
         # 2. Section 2 is successfully included now that add_equation preserves %<<insert>>
         has_section_2 = "Methodology \\& Future Work" in tmpl
         self.assertTrue(has_section_2, "Section 2 is properly preserved in template output.")
 
-    @unittest.expectedFailure
     def test_full_report_assert_all_elements_present_in_order(self):
         """
         Asserts that every piece of text appears in the output string in the right order:
@@ -1280,6 +1371,161 @@ class Step7BuilderTests(TestCase):
             self.assertNotEqual(pos, -1, f"Marker '{marker}' was not found in LaTeX output.")
             self.assertGreater(pos, last_pos, f"Marker '{marker}' appeared out of order.")
             last_pos = pos
+
+    def test_build_report_with_content_element_and_citations(self):
+        """
+        Verify that a content element:
+        1. Escapes LaTeX special characters ($ % & _).
+        2. Converts [rI] tags to \\cite{refI}.
+        3. Appears in exact sequence: Subsection -> Content -> Image -> Table -> Equation.
+        """
+        uploaded_file = SimpleUploadedFile("chart.png", self.valid_png_bytes, content_type="image/png")
+        img = UploadedImage.objects.create(
+            session_key="content_test_session",
+            file=uploaded_file,
+            fmt="png",
+            size=len(self.valid_png_bytes),
+            expires_at=timezone.now() + timedelta(days=7)
+        )
+
+        report_data = {
+            "title": "Content Test Report",
+            "authors": [{"name": "Lead Author", "affiliation": "Lab"}],
+            "abstract": "Abstract overview.",
+            "keywords": "AI, Testing",
+            "references": [
+                {"title": "First Reference Paper", "link": "https://example.com/ref1"},
+                {"title": "Second Reference Paper", "link": "https://example.com/ref2"}
+            ],
+            "sections": [
+                {
+                    "title": "1. Analysis Section",
+                    "context": "Context text.",
+                    "elements": [
+                        {
+                            "type": "subsection",
+                            "title": "1.1 Sub Heading",
+                            "content": "Subsection intro text."
+                        },
+                        {
+                            "type": "content",
+                            "content": "Content body with special chars 50% & $100 citing [r1] and [r2]."
+                        },
+                        {
+                            "type": "image",
+                            "caption": "Image Figure",
+                            "imageType": "png",
+                            "image_id": img.pk
+                        },
+                        {
+                            "type": "table",
+                            "caption": "Data Table",
+                            "columnsCount": 2,
+                            "rowsCount": 2,
+                            "gridData": [["Col1", "Col2"], ["Val1", "Val2"]]
+                        },
+                        {
+                            "type": "equation",
+                            "caption": "Formula",
+                            "equation": "E = mc^2"
+                        }
+                    ]
+                }
+            ]
+        }
+
+        doc = build_report(report_data, session_key="content_test_session")
+        tmpl = doc.get_template()
+
+        # LaTeX escaping check
+        self.assertIn(r"50\% \& \$100", tmpl)
+        # Citation [r1] -> \cite{ref1} and [r2] -> \cite{ref2}
+        self.assertIn(r"\cite{ref1}", tmpl)
+        self.assertIn(r"\cite{ref2}", tmpl)
+
+        # Ordering check: Subsection -> Content -> Image -> Table -> Equation
+        ordered_markers = [
+            "Sub Heading",
+            "Content body with special chars",
+            "Image Figure",
+            "Data Table",
+            "E = mc^2"
+        ]
+        last_pos = -1
+        for marker in ordered_markers:
+            pos = tmpl.find(marker)
+            self.assertNotEqual(pos, -1, f"Marker '{marker}' was not found in LaTeX output.")
+            self.assertGreater(pos, last_pos, f"Marker '{marker}' appeared out of order.")
+            last_pos = pos
+
+    def test_build_report_multiple_interleaved_content_and_subsections(self):
+        """
+        Verify that multiple subsections and multiple content blocks
+        interleaved are all rendered in order, with none dropped or duplicated.
+        """
+        report_data = {
+            "title": "Interleaved Elements Paper",
+            "authors": [{"name": "Author", "affiliation": "Affil"}],
+            "abstract": "Abstract",
+            "keywords": "Keywords",
+            "references": [],
+            "sections": [
+                {
+                    "title": "1. Core Framework",
+                    "context": "Context",
+                    "elements": [
+                        {"type": "subsection", "title": "Sub Alpha", "content": "Alpha content"},
+                        {"type": "content", "content": "Body paragraph one."},
+                        {"type": "subsection", "title": "Sub Beta", "content": "Beta content"},
+                        {"type": "content", "content": "Body paragraph two."}
+                    ]
+                }
+            ]
+        }
+
+        doc = build_report(report_data)
+        tmpl = doc.get_template()
+
+        # Verify all 4 elements are present exactly once
+        self.assertEqual(tmpl.count("Sub Alpha"), 1)
+        self.assertEqual(tmpl.count("Body paragraph one."), 1)
+        self.assertEqual(tmpl.count("Sub Beta"), 1)
+        self.assertEqual(tmpl.count("Body paragraph two."), 1)
+
+        pos_sub_alpha = tmpl.find("Sub Alpha")
+        pos_body_one = tmpl.find("Body paragraph one.")
+        pos_sub_beta = tmpl.find("Sub Beta")
+        pos_body_two = tmpl.find("Body paragraph two.")
+
+        self.assertLess(pos_sub_alpha, pos_body_one)
+        self.assertLess(pos_body_one, pos_sub_beta)
+        self.assertLess(pos_sub_beta, pos_body_two)
+
+    def test_build_report_content_numeric_citation_style(self):
+        """
+        Verify that [1] citation style inside content element also converts to \\cite{ref1}.
+        """
+        report_data = {
+            "title": "Numeric Citation Paper",
+            "authors": [{"name": "Author", "affiliation": "Affil"}],
+            "abstract": "Abstract",
+            "keywords": "Keywords",
+            "references": [{"title": "Seminal Work", "link": "http://example.com"}],
+            "sections": [
+                {
+                    "title": "1. Review",
+                    "context": "Context",
+                    "elements": [
+                        {"type": "content", "content": "Prior findings established in [1]."}
+                    ]
+                }
+            ]
+        }
+
+        doc = build_report(report_data)
+        tmpl = doc.get_template()
+        self.assertIn(r"\cite{ref1}", tmpl)
+        self.assertNotIn("[1]", tmpl)
 
 
 class Step8DynamicDocsTests(TestCase):
@@ -2063,6 +2309,306 @@ class Step4VerificationTests(TestCase):
         doc = mock_compile.call_args[0][0]
         tex_content = doc.get_payload()["texFileContent"]
         self.assertIn("width=12cm", tex_content)
+
+
+class Step10GenerateCodeTests(TestCase):
+    """
+    Test suite for Generate Code endpoints (GET/POST /generate-code/ and /api/generate-code/).
+    Verifies LaTeX code retrieval via doc.get_template(), validation, content element rendering,
+    and ensures compilation services are NOT called.
+    """
+
+    def setUp(self):
+        self.client = Client()
+        self.valid_png_bytes = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+
+    def tearDown(self):
+        for img in UploadedImage.objects.all():
+            if img.file:
+                try:
+                    img.file.delete(save=False)
+                except Exception:
+                    pass
+
+    def _setup_valid_session(self):
+        session = self.client.session
+        session["title"] = "AI Powered LaTeX Generator"
+        session["authors"] = [
+            {"name": "Alice Smith", "affiliation": "MIT", "email": "alice@mit.edu"},
+            {"name": "Bob Jones", "affiliation": "Stanford", "email": "bob@stanford.edu"},
+        ]
+        session["abstract"] = "This paper presents an automated LaTeX generation system."
+        session["keywords"] = "LaTeX, Automation, IEEE"
+        session["sections"] = [
+            {
+                "title": "Introduction",
+                "context": "Introductory context with reference [r1].",
+                "elements": [
+                    {
+                        "type": "content",
+                        "content": "Body text in content block citing [r1] and [r2]."
+                    },
+                    {
+                        "type": "subsection",
+                        "title": "Background",
+                        "content": "Subsection discussion."
+                    }
+                ]
+            }
+        ]
+        session["references"] = [
+            {"ref": "A. Author, 'First Paper', IEEE Trans, 2020."},
+            {"ref": "B. Writer, 'Second Paper', ACM, 2021."}
+        ]
+        session.save()
+
+    def test_generate_code_post_success(self):
+        """POST /generate-code/ returns 200, status success, and LaTeX template from doc.get_template()."""
+        self._setup_valid_session()
+
+        res = self.client.post(reverse('generate_code'))
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data.get("status"), "success")
+        code = data.get("code", "")
+        self.assertIn(r"\documentclass", code)
+        self.assertIn("AI Powered LaTeX Generator", code)
+        self.assertIn("Alice Smith", code)
+        self.assertIn(r"\section{Introduction}", code)
+        self.assertIn("Body text in content block", code)
+        # Citations converted
+        self.assertIn(r"\cite{ref1}", code)
+        self.assertIn(r"\cite{ref2}", code)
+        self.assertEqual(data.get("filename"), "AI-Powered-LaTeX-Generator.tex")
+        self.assertGreater(data.get("lines", 0), 10)
+        self.assertGreater(data.get("characters", 0), 100)
+
+    def test_generate_code_get_success(self):
+        """GET /generate-code/ also successfully returns the generated LaTeX template."""
+        self._setup_valid_session()
+
+        res = self.client.get(reverse('generate_code'))
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data.get("status"), "success")
+        self.assertIn(r"\documentclass", data.get("code", ""))
+
+    def test_api_generate_code_endpoint(self):
+        """/api/generate-code/ route works identically."""
+        self._setup_valid_session()
+
+        res = self.client.post(reverse('api_generate_code'))
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data.get("status"), "success")
+        self.assertIn("AI Powered LaTeX Generator", data.get("code", ""))
+
+    def test_generate_code_validation_missing_title(self):
+        """POST /generate-code/ returns 400 when title is empty."""
+        session = self.client.session
+        session["title"] = ""
+        session["sections"] = [{"title": "Sec", "context": "Text", "elements": []}]
+        session.save()
+
+        res = self.client.post(reverse('generate_code'))
+        self.assertEqual(res.status_code, 400)
+        data = res.json()
+        self.assertEqual(data.get("status"), "error")
+        self.assertTrue(any("title is required" in err.lower() for err in data.get("errors", [])))
+
+    def test_generate_code_validation_missing_sections(self):
+        """POST /generate-code/ returns 400 when sections list is empty."""
+        session = self.client.session
+        session["title"] = "Title Only"
+        session["sections"] = []
+        session.save()
+
+        res = self.client.post(reverse('generate_code'))
+        self.assertEqual(res.status_code, 400)
+        data = res.json()
+        self.assertEqual(data.get("status"), "error")
+        self.assertTrue(any("at least one section" in err.lower() for err in data.get("errors", [])))
+
+    @patch("report.views.compile_pdf")
+    def test_generate_code_does_not_call_compile_pdf(self, mock_compile):
+        """Verifies compile_pdf is never invoked when generating code."""
+        self._setup_valid_session()
+
+        res = self.client.post(reverse('generate_code'))
+        self.assertEqual(res.status_code, 200)
+        mock_compile.assert_not_called()
+
+    def test_generate_code_with_image_calls_add_gen_image(self):
+        r"""
+        When generating code with an image element, calls add_gen_image:
+        uses image file name, caption, and fig1 (fig + image index),
+        rendering \includegraphics[width=\textwidth]{name} instead of \advGetImage.
+        """
+        # 1. Upload image
+        img_file = SimpleUploadedFile("architecture.png", self.valid_png_bytes, content_type="image/png")
+        upload_res = self.client.post(reverse('upload_image'), {"image": img_file, "fmt": "png"})
+        self.assertEqual(upload_res.status_code, 201)
+        img_id = upload_res.json()["image_id"]
+
+        # 2. Setup session with image element containing fileName
+        self._setup_valid_session()
+        session = self.client.session
+        session["sections"] = [
+            {
+                "title": "System Architecture",
+                "context": "Context description.",
+                "elements": [
+                    {
+                        "type": "image",
+                        "caption": "Figure 1: High Level System Overview",
+                        "width": "8cm",
+                        "imageType": "png",
+                        "image_id": img_id,
+                        "fileName": "architecture.png",
+                    },
+                    {
+                        "type": "content",
+                        "content": "Description following the figure."
+                    }
+                ]
+            }
+        ]
+        session.save()
+
+        # 3. Call generate-code
+        res = self.client.post(reverse('generate_code'))
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        code = data.get("code", "")
+
+        # Verify add_gen_image output
+        self.assertIn(r"\includegraphics[width=8cm]{architecture.png}", code)
+        self.assertIn(r"\caption{High Level System Overview}", code)
+        self.assertIn(r"\label{fig:fig1}", code)
+        # Verify \advGetImage is NOT present in generated code
+        self.assertNotIn(r"\advGetImage", code)
+        # Verify subsequent content block is preserved
+        self.assertIn("Description following the figure.", code)
+
+    def test_generate_code_multiple_images_incremental_fig_labels(self):
+        """
+        Multiple images across sections receive incrementing fig labels:
+        fig1 for image 1, fig2 for image 2, and preserve following elements.
+        """
+        img1 = SimpleUploadedFile("chart1.png", self.valid_png_bytes, content_type="image/png")
+        upload_res1 = self.client.post(reverse('upload_image'), {"image": img1, "fmt": "png"})
+        img_id1 = upload_res1.json()["image_id"]
+
+        img2 = SimpleUploadedFile("chart2.png", self.valid_png_bytes, content_type="image/png")
+        upload_res2 = self.client.post(reverse('upload_image'), {"image": img2, "fmt": "png"})
+        img_id2 = upload_res2.json()["image_id"]
+
+        self._setup_valid_session()
+        session = self.client.session
+        session["sections"] = [
+            {
+                "title": "First Section",
+                "context": "Context 1.",
+                "elements": [
+                    {
+                        "type": "image",
+                        "caption": "First Chart",
+                        "width": "8cm",
+                        "imageType": "png",
+                        "image_id": img_id1,
+                        "fileName": "chart1.png",
+                    },
+                    {
+                        "type": "subsection",
+                        "title": "Sub In Section 1",
+                        "content": "Subsection body."
+                    }
+                ]
+            },
+            {
+                "title": "Second Section",
+                "context": "Context 2.",
+                "elements": [
+                    {
+                        "type": "image",
+                        "caption": "Second Chart",
+                        "width": "10cm",
+                        "imageType": "png",
+                        "image_id": img_id2,
+                        "fileName": "chart2.png",
+                    },
+                    {
+                        "type": "table",
+                        "caption": "Metrics Table",
+                        "columnsCount": 2,
+                        "rowsCount": 2,
+                        "gridData": [["Col A", "Col B"], ["Val 1", "Val 2"]],
+                    }
+                ]
+            }
+        ]
+        session.save()
+
+        res = self.client.post(reverse('generate_code'))
+        self.assertEqual(res.status_code, 200)
+        code = res.json().get("code", "")
+
+        # Verify first image with default width 8cm
+        self.assertIn(r"\includegraphics[width=8cm]{chart1.png}", code)
+        self.assertIn(r"\label{fig:fig1}", code)
+        self.assertIn("Sub In Section 1", code)
+
+        # Verify second image with custom width 10cm and section
+        self.assertIn(r"\section{Second Section}", code)
+        self.assertIn(r"\includegraphics[width=10cm]{chart2.png}", code)
+        self.assertIn(r"\label{fig:fig2}", code)
+        self.assertIn("Metrics Table", code)
+
+    @patch("report.views.compile_pdf")
+    def test_generate_pdf_keeps_usual_advgetimage(self, mock_compile):
+        """
+        When generating PDF (generate_view), image element still uses add_uploaded_image / \advGetImage
+        as usual for DynamicDocs compatibility.
+        """
+        mock_compile.return_value = b"%PDF-1.4 simulated pdf"
+
+        img_file = SimpleUploadedFile("figure.png", self.valid_png_bytes, content_type="image/png")
+        upload_res = self.client.post(reverse('upload_image'), {"image": img_file, "fmt": "png"})
+        img_id = upload_res.json()["image_id"]
+
+        self._setup_valid_session()
+        session = self.client.session
+        session["sections"] = [
+            {
+                "title": "Visual Analysis",
+                "context": "Context text.",
+                "elements": [
+                    {
+                        "type": "image",
+                        "caption": "PDF Diagram",
+                        "width": "9cm",
+                        "imageType": "png",
+                        "image_id": img_id,
+                        "fileName": "figure.png",
+                    }
+                ]
+            }
+        ]
+        session.save()
+
+        res = self.client.post(reverse('generate'))
+        self.assertEqual(res.status_code, 200)
+        mock_compile.assert_called_once()
+
+        doc = mock_compile.call_args[0][0]
+        tex_content = doc.get_payload()["texFileContent"]
+
+        # In PDF generation mode, \advGetImage is present as usual
+        self.assertIn(r"\advGetImage{key = image1, width=9cm, type = png}", tex_content)
+        self.assertIn(r"\label{fig:image1}", tex_content)
+        self.assertNotIn(r"\includegraphics[width=\textwidth]", tex_content)
+
+
 
 
 
